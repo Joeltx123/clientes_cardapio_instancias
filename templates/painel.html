@@ -175,6 +175,10 @@
                 <span class="icon">📊</span>
                 <span class="text">Analisar</span>
             </li>
+            <li onclick="carregarSecao('QR Code')">
+                <span class="icon">📷</span>
+                <span class="text">QR Code</span>
+            </li>
             <li onclick="carregarSecao('Backup')">
                 <span class="icon">💾</span>
                 <span class="text">Backup</span>
@@ -298,7 +302,47 @@
                 renderizarTelaAnalise();
             } else if (nome === 'Backup') {
                 renderizarTelaBackup();
-            } else {
+            } 
+        else if (nome === 'QR Code') {
+            const qtdRemessas = parseInt(localStorage.getItem('qtd_remessas') || '0');
+            if (qtdRemessas <= 0) {
+                contentArea.innerHTML = `<div class="card" style="padding: 20px; background: #1e1e1e; color: #fff; border-radius: 8px;"><h3>QR Code das Mesas</h3><p style="color: #ff5252; margin-top: 10px;">Nenhuma mesa configurada. Vá em Configurações e defina a quantidade de mesas.</p></div>`;
+                return;
+            }
+
+            let cardsHtml = '';
+            for (let i = 1; i <= qtdRemessas; i++) {
+                const linkMesa = `${window.location.origin}/cardapio?mesa=${i}`;
+                const qrServerApi = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(linkMesa)}`;
+                cardsHtml += `
+                    <div class="card-qr-item" style="background: #222; padding: 15px; border-radius: 8px; border: 1px solid #444; text-align: center; page-break-inside: avoid;">
+                        <h3 style="color: #ff9800; margin-bottom: 10px; font-size: 1.1rem;">Mesa / Remessa #${i}</h3>
+                        <div style="background: #fff; padding: 10px; display: inline-block; border-radius: 6px; margin-bottom: 10px;">
+                            <img src="${qrServerApi}" alt="QR Code Mesa ${i}" style="width: 160px; height: 160px; display: block; margin: 0 auto;">
+                        </div>
+                        <p style="color: #aaa; font-size: 0.75rem; word-break: break-all; margin: 0;">${linkMesa}</p>
+                    </div>
+                `;
+            }
+
+            contentArea.innerHTML = `
+                <div style="display: flex; flex-direction: column; gap: 20px; padding: 10px; color: #fff; max-width: 900px; margin: 0 auto;">
+                    <div class="card" style="background: #1e1e1e; padding: 20px; border-radius: 8px; border: 1px solid #333; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                        <div>
+                            <h3 style="color: #ff9800; margin-bottom: 5px;">QR Codes de Todas as Mesas</h3>
+                            <p style="color: #aaa; font-size: 0.9rem; margin: 0;">Visualize e imprima os QR Codes individuais de todas as mesas configuradas.</p>
+                        </div>
+                        <button onclick="imprimirTodosQRCodes()" style="padding: 12px 20px; background: #ff9800; color: #121212; font-weight: bold; border: none; border-radius: 5px; cursor: pointer;">🖨️ Imprimir Todos</button>
+                    </div>
+
+                    <div id="grid-qr-codes" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px;">
+                        ${cardsHtml}
+                    </div>
+                </div>
+            `;
+        }
+
+        else {
                 contentArea.innerHTML = `
                     <div class="card">
                         <h3 id="section-title">Gerenciamento de ${nome}</h3>

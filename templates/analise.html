@@ -1,47 +1,47 @@
 {% extends "base.html" %}
 
-{% block title %}Análise Financeira - Cardápio Pro{% endblock %}
-
 {% block content %}
-<div class="card">
-    <h2>Análise de Desempenho e Financeiro</h2>
-    <p style="margin-bottom: 1.5rem; color: #64748b;">Métricas gerais do faturamento e formas de pagamento utilizadas.</p>
+<div class="card" style="margin-bottom: 20px;">
+    <h3 style="color: var(--primary-color); margin-bottom: 5px;">Menu de Análise e Faturamento</h3>
+    <p style="color: #a0a0a0; margin-bottom: 15px; font-size: 0.9rem;">Resumo geral do faturamento e vendas agrupadas por forma de pagamento.</p>
+</div>
 
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
-        <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 1.25rem; text-align: center;">
-            <span style="font-size: 0.9rem; color: #64748b; display: block; margin-bottom: 0.3rem;">Faturamento Total</span>
-            <strong style="font-size: 1.5rem; color: #16a34a;">R$ {{ "%.2f"|format(resumo.faturamento_total) }}</strong>
-        </div>
-        <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 1.25rem; text-align: center;">
-            <span style="font-size: 0.9rem; color: #64748b; display: block; margin-bottom: 0.3rem;">Total de Pedidos</span>
-            <strong style="font-size: 1.5rem; color: #2563eb;">{{ resumo.total_pedidos }}</strong>
-        </div>
+<!-- Cards de Resumo vindos do Banco de Dados -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 20px;">
+    <div style="background: #252525; border: 1px solid #333; padding: 18px; border-radius: 8px; border-left: 4px solid var(--primary-color);">
+        <span style="color: #a0a0a0; font-size: 0.8rem;">Faturamento Total</span>
+        <h2 style="color: #fff; margin-top: 5px; font-size: 1.4rem;">R$ {{ "%.2f"|format(resumo.faturamento_total or 0) }}</h2>
+        <span style="color: #777; font-size: 0.75rem;">{{ resumo.total_pedidos or 0 }} pedido(s) registrado(s)</span>
     </div>
+</div>
 
-    <h3 style="font-size: 1.1rem; margin-bottom: 1rem; color: #334155;">Faturamento por Forma de Pagamento</h3>
-    {% if not por_pagamento %}
-        <p style="color: #64748b;">Nenhum dado financeiro registrado ainda.</p>
-    {% else %}
-        <div style="overflow-x: auto;">
-            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.95rem;">
-                <thead>
-                    <tr style="background: #f1f5f9; border-bottom: 2px solid #cbd5e1;">
-                        <th style="padding: 0.75rem;">Forma de Pagamento</th>
-                        <th style="padding: 0.75rem;">Qtd. Pedidos</th>
-                        <th style="padding: 0.75rem;">Total Arrecadado</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for p in por_pagamento %}
-                    <tr style="border-bottom: 1px solid #e2e8f0;">
-                        <td style="padding: 0.75rem; font-weight: 500;">{{ p.forma_pagamento }}</td>
-                        <td style="padding: 0.75rem;">{{ p.qtd }}</td>
-                        <td style="padding: 0.75rem; font-weight: 600; color: #16a34a;">R$ {{ "%.2f"|format(p.total) }}</td>
+<div class="card" style="margin-top: 20px;">
+    <h3 style="color: var(--primary-color); margin-bottom: 10px;">Vendas por Forma de Pagamento</h3>
+    <div style="max-height: 350px; overflow-y: auto;">
+        <table style="width: 100%; border-collapse: collapse; text-align: left; background: #1a1a1a;">
+            <thead>
+                <tr style="background: #252525; border-bottom: 2px solid #333; color: var(--primary-color); font-size: 0.85rem;">
+                    <th style="padding: 10px 12px;">Forma de Pagamento</th>
+                    <th style="padding: 10px 12px;">Quantidade</th>
+                    <th style="padding: 10px 12px;">Total Arrecadado</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if por_pagamento %}
+                    {% for item in por_pagamento %}
+                    <tr style="border-bottom: 1px solid #333; font-size: 0.85rem;">
+                        <td style="padding: 10px 12px; color: #ddd; font-weight: bold;">{{ item.forma_pagamento or 'Não especificado' }}</td>
+                        <td style="padding: 10px 12px; color: #a0a0a0;">{{ item.qtd }}</td>
+                        <td style="padding: 10px 12px; color: #4caf50; font-weight: bold;">R$ {{ "%.2f"|format(item.total or 0) }}</td>
                     </tr>
                     {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    {% endif %}
+                {% else %}
+                    <tr>
+                        <td colspan="3" style="text-align: center; color: #777; padding: 20px;">Nenhum registro de pagamento encontrado no banco.</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
 </div>
 {% endblock %}
