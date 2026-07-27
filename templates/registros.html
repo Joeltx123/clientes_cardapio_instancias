@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Registro de Vendas - Cardápio Pro{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Histórico de Registros e Transações</h2>
+    <p style="margin-bottom: 1.5rem; color: #64748b;">Consulte todas as operações e pedidos processados no estabelecimento.</p>
+
+    {% if not transacoes %}
+        <p style="color: #64748b;">Nenhum registro encontrado.</p>
+    {% else %}
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.95rem;">
+                <thead>
+                    <tr style="background: #f1f5f9; border-bottom: 2px solid #cbd5e1;">
+                        <th style="padding: 0.75rem;">ID</th>
+                        <th style="padding: 0.75rem;">Mesa</th>
+                        <th style="padding: 0.75rem;">Itens</th>
+                        <th style="padding: 0.75rem;">Total</th>
+                        <th style="padding: 0.75rem;">Pagamento</th>
+                        <th style="padding: 0.75rem;">Status</th>
+                        <th style="padding: 0.75rem;">Data/Hora</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in transacoes %}
+                    <tr style="border-bottom: 1px solid #e2e8f0;">
+                        <td style="padding: 0.75rem;">#{{ t.id }}</td>
+                        <td style="padding: 0.75rem;">Mesa {{ t.mesa }}</td>
+                        <td style="padding: 0.75rem; white-space: pre-line; font-size: 0.9rem;">{{ t.itens }}</td>
+                        <td style="padding: 0.75rem; font-weight: 600; color: #16a34a;">R$ {{ "%.2f"|format(t.total) }}</td>
+                        <td style="padding: 0.75rem;">{{ t.forma_pagamento }}</td>
+                        <td style="padding: 0.75rem;">{{ t.status }}</td>
+                        <td style="padding: 0.75rem; color: #64748b; font-size: 0.85rem;">{{ t.criado_em }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

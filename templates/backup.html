@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}Backup do Sistema - Cardápio Pro{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Backup e Segurança dos Dados</h2>
+    <p style="margin-bottom: 1.5rem; color: #64748b;">Faça o download do arquivo de segurança contendo todas as configurações, produtos e pedidos cadastrados.</p>
+
+    <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <h4 style="color: #1e293b; margin-bottom: 0.2rem;">Exportar Banco de Dados (JSON)</h4>
+            <p style="font-size: 0.9rem; color: #64748b;">Gera um arquivo completo com todos os dados do sistema atual.</p>
+        </div>
+        <a href="/admin/backup/exportar" class="btn" style="background: #16a34a; text-decoration: none; padding: 0.6rem 1.2rem;">Baixar Backup</a>
+    </div>
+</div>
+{% endblock %}

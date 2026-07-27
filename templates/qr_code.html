@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}QR Codes das Mesas - Cardápio Pro{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h2>QR Codes e Links das Mesas</h2>
+        <a href="/admin/configuracoes" class="btn" style="background-color: #64748b; font-size: 0.9rem; padding: 0.5rem 1rem;">Alterar Quantidade de Mesas</a>
+    </div>
+    
+    <p style="margin-bottom: 1.5rem; color: #64748b;">Estes são os QR codes gerados automaticamente com base nas <strong>{{ mesas | length }}</strong> mesas configuradas. Os clientes escaneiam para abrir o cardápio digital.</p>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1.5rem;">
+        {% for mesa in mesas %}
+        <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 1.25rem; text-align: center; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+            <h3 style="margin-bottom: 0.75rem; color: #1e293b;">Mesa {{ mesa.numero }}</h3>
+            <div style="background: white; padding: 0.5rem; display: inline-block; border-radius: 6px; border: 1px solid #e2e8f0; margin-bottom: 0.75rem;">
+                <img src="{{ mesa.qr_code }}" alt="QR Code Mesa {{ mesa.numero }}" style="width: 130px; height: 130px; display: block;">
+            </div>
+            <div style="word-break: break-all; margin-bottom: 0.75rem;">
+                <a href="{{ mesa.link }}" target="_blank" style="font-size: 0.85rem; color: #2563eb; text-decoration: none;">{{ mesa.link }}</a>
+            </div>
+            <a href="{{ mesa.link }}" target="_blank" class="btn" style="font-size: 0.85rem; padding: 0.4rem 0.8rem; width: 100%;">Abrir Cardápio</a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

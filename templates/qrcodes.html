@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>QR Codes das Mesas</h2>
+<div style="display: flex; flex-wrap: wrap; gap: 20px;">
+    {% for mesa in mesas %}
+        <div style="border: 1px solid #ccc; padding: 15px; border-radius: 8px; text-align: center; background: #fafafa;">
+            <h3>Mesa {{ mesa.numero }}</h3>
+            <img src="{{ mesa.qr }}" alt="QR Mesa {{ mesa.numero }}">
+            <p><a href="{{ mesa.link }}" target="_blank">Abrir Link</a></p>
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}
