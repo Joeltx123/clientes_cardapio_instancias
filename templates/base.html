@@ -4,25 +4,391 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Cardápio Pro{% endblock %}</title>
-    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        /* 1. Midnight Blue (Padrão Sofisticado) */
+        :root {
+            --bg-main: #090d16;
+            --bg-card: #111827;
+            --nav-bg: #070a13;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --text-main: #f9fafb;
+            --text-muted: #9ca3af;
+            --input-bg: #1f2937;
+            --input-text: #f9fafb;
+            --accent-grad: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            --accent-color: #f59e0b;
+            --accent-text: #ffffff;
+            --shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5);
+        }
+
+        /* 2. Clean Light Minimalista */
+        [data-theme="light"] {
+            --bg-main: #f8fafc;
+            --bg-card: #ffffff;
+            --nav-bg: #ffffff;
+            --border-color: #e2e8f0;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --input-bg: #f8fafc;
+            --input-text: #0f172a;
+            --accent-grad: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            --accent-color: #3b82f6;
+            --accent-text: #ffffff;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        /* 3. Emerald Restô (Verde Gourmet) */
+        [data-theme="emerald"] {
+            --bg-main: #022c22;
+            --bg-card: #064e3b;
+            --nav-bg: #01211a;
+            --border-color: rgba(255, 255, 255, 0.12);
+            --text-main: #ecfdf5;
+            --text-muted: #6ee7b7;
+            --input-bg: #047857;
+            --input-text: #ffffff;
+            --accent-grad: linear-gradient(135deg, #34d399 0%, #059669 100%);
+            --accent-color: #34d399;
+            --accent-text: #022c22;
+            --shadow: 0 10px 25px -5px rgba(0, 44, 34, 0.6);
+        }
+
+        /* 4. Warm Terracotta (Gastronomia Quente) */
+        [data-theme="terracotta"] {
+            --bg-main: #1c1512;
+            --bg-card: #291e18;
+            --nav-bg: #140f0c;
+            --border-color: rgba(255, 255, 255, 0.09);
+            --text-main: #fdf8f6;
+            --text-muted: #d4b5a7;
+            --input-bg: #382921;
+            --input-text: #fdf8f6;
+            --accent-grad: linear-gradient(135deg, #f97316 0%, #c2410c 100%);
+            --accent-color: #f97316;
+            --accent-text: #ffffff;
+            --shadow: 0 10px 25px -5px rgba(28, 21, 18, 0.7);
+        }
+
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* old header */
+/*
+            background-color: var(--nav-bg) !important;
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.85rem 1.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-brand {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text-main);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            letter-spacing: -0.5px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 0.6rem;
+            align-items: center;
+            overflow-x: auto;
+            white-space: nowrap;
+            max-width: 100%;
+            padding: 6px 4px;
+            scrollbar-width: thin;
+            -webkit-overflow-scrolling: touch;
+        }
+        .nav-links::-webkit-scrollbar {
+            height: 5px;
+        }
+        .nav-links::-webkit-scrollbar-thumb {
+            background: var(--accent-color);
+            border-radius: 10px;
+        }
+        .nav-link-item {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.88rem;
+            font-weight: 600;
+            padding: 0.55rem 1rem;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .nav-link-item:hover, .nav-link-item:active {
+            color: var(--text-main);
+            border-color: var(--accent-color);
+            background: var(--input-bg);
+            transform: translateY(-1px);
+        }
+
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 500;
+            padding: 0.45rem 0.85rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            transition: all 0.2s;
+        }
+
+            color: var(--text-main);
+            border-color: var(--accent-color);
+            background: var(--input-bg);
+        }
+
+        /* Menu Flutuante Discreto de Temas */
+        .theme-dropdown-container {
+            position: relative;
+            display: inline-block;
+        }
+        .theme-toggle-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 0.45rem 0.85rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+        .theme-toggle-btn:hover {
+            border-color: var(--accent-color);
+        }
+        .theme-menu-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: calc(100% + 8px);
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            min-width: 200px;
+            z-index: 1000;
+            padding: 0.5rem;
+        }
+        .theme-menu-content.show {
+            display: block;
+        }
+        .theme-option {
+            width: 100%;
+            text-align: left;
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            padding: 0.55rem 0.75rem;
+            font-size: 0.85rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .theme-option:hover {
+            background: var(--input-bg);
+            color: var(--accent-color);
+        }
+
+        main {
+            padding: 2rem 1.5rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+    
+        @media (min-width: 992px) {
+            .nav-links {
+                overflow-x: visible !important;
+                flex-wrap: wrap !important;
+                white-space: normal !important;
+            }
+        }
+        @media (max-width: 991px) {
+            header {
+                padding: 0.6rem 1rem !important;
+            }
+            .nav-links {
+                width: 100%;
+                overflow-x: auto;
+                white-space: nowrap;
+                padding-bottom: 6px;
+                -webkit-overflow-scrolling: touch;
+            }
+        }
+    
+        header {
+            background-color: var(--nav-bg) !important;
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.75rem 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+        .nav-brand {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-main);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .nav-links {
+            display: flex;
+            gap: 0.4rem;
+            align-items: center;
+            overflow-x: auto;
+            width: 100%;
+            padding-bottom: 4px;
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* IE/Edge */
+        }
+        .nav-links::-webkit-scrollbar {
+            display: none; /* Chrome/Safari */
+        }
+        .nav-link-item {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 0.45rem 0.75rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            white-space: nowrap;
+            flex-shrink: 0;
+            transition: all 0.2s ease;
+        }
+        .nav-link-item:hover, .nav-link-item:active {
+            color: var(--text-main);
+            border-color: var(--accent-color);
+            background: var(--input-bg);
+        }
+        @media (min-width: 992px) {
+            header {
+                flex-direction: row;
+                justify-content: space-between;
+                padding: 0.85rem 1.75rem;
+            }
+            .nav-links {
+                width: auto;
+                flex-wrap: wrap;
+                overflow-x: visible;
+            }
+        }
+
+</style>
 </head>
 <body>
+
     <header>
-        <h1>Cardápio Pro - Painel do Estabelecimento</h1>
-        <nav style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-            <a href="/admin/configuracoes" class="btn" style="padding: 0.4rem 0.8rem; font-size: 0.9rem; background-color: #475569;">Configurações</a>
-            <a href="/admin/qrcodes" class="btn" style="padding: 0.4rem 0.8rem; font-size: 0.9rem; background-color: #475569;">QR Codes</a>
-            <a href="/admin/cardapio" class="btn" style="padding: 0.4rem 0.8rem; font-size: 0.9rem; background-color: #475569;">Cardápio</a>
-            <a href="/admin/pedidos" class="btn" style="padding: 0.4rem 0.8rem; font-size: 0.9rem; background-color: #475569;">Pedidos</a>
-            <a href="/admin/registros" class="btn" style="padding: 0.4rem 0.8rem; font-size: 0.9rem; background-color: #475569;">Registros</a>
-            <a href="/admin/analise" class="btn" style="padding: 0.4rem 0.8rem; font-size: 0.9rem; background-color: #475569;">Análise</a>
-            <a href="/admin/backup" class="btn" style="padding: 0.4rem 0.8rem; font-size: 0.9rem; background-color: #475569;">Backup</a>
-            <span class="btn" style="padding: 0.4rem 0.8rem; font-size: 0.9rem; background-color: #94a3b8; opacity: 0.7; cursor: not-allowed;" title="Fechado por enquanto">Delivery (Em breve)</span>
-        </nav>
+        <a href="/admin/cardapio" class="nav-brand">
+            🍽️ Cardápio Pro <span style="font-size: 0.75rem; font-weight: 400; color: var(--text-muted); border-left: 1px solid var(--border-color); padding-left: 0.75rem;">Painel de Gestão</span>
+        </a>
+
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <div class="nav-links">
+                <a href="/admin/{{ slug }}/configuracoes" class="nav-link-item">⚙️ Configurações</a>
+                <a href="/admin/{{ slug }}/cardapio" class="nav-link-item">📖 Cardápio</a>
+                <a href="/admin/{{ slug }}/pedidos" class="nav-link-item">📦 Pedidos</a>
+                <a href="/admin/{{ slug }}/pagamento" class="nav-link-item">💳 Pagamentos</a>
+                <a href="/admin/{{ slug }}/registro" class="nav-link-item">📋 Registro</a>
+                <a href="/admin/{{ slug }}/analise" class="nav-link-item">📊 Análise</a>
+                <a href="/admin/{{ slug }}/delivery" class="nav-link-item">🛵 Delivery</a>
+                <a href="/admin/{{ slug }}/backup" class="nav-link-item">💾 Backup</a>
+                <a href="/admin/{{ slug }}/qr-codes" class="nav-link-item">📱 QR Codes</a>
+            </div>
+
+            <!-- Botão Flutuante Discreto de Tema -->
+            <div class="theme-dropdown-container">
+                <button class="theme-toggle-btn" onclick="toggleThemeMenu()">
+                    🎨 <span id="currentThemeLabel">Tema</span> ▾
+                </button>
+                <div id="themeMenu" class="theme-menu-content">
+                    <button class="theme-option" onclick="mudarTema('dark', 'Midnight Blue')">🌌 Midnight Blue (Escuro)</button>
+                    <button class="theme-option" onclick="mudarTema('light', 'Clean Light')">☀️ Clean Light (Claro)</button>
+                    <button class="theme-option" onclick="mudarTema('emerald', 'Emerald Restô')">🌿 Emerald Restô (Verde)</button>
+                    <button class="theme-option" onclick="mudarTema('terracotta', 'Warm Terracotta')">🏺 Warm Terracotta (Quente)</button>
+                </div>
+            </div>
+        </div>
     </header>
 
-    <div class="container">
+    <main>
         {% block content %}{% endblock %}
-    </div>
+    </main>
+
+    <script>
+        function toggleThemeMenu() {
+            document.getElementById('themeMenu').classList.toggle('show');
+        }
+
+        window.addEventListener('click', function(e) {
+            if (!e.target.closest('.theme-dropdown-container')) {
+                const menu = document.getElementById('themeMenu');
+                if (menu && menu.classList.contains('show')) {
+                    menu.classList.remove('show');
+                }
+            }
+        });
+
+        function aplicarTemaGlobal(tema, nomeExibicao) {
+            if (tema === 'dark') {
+                document.documentElement.removeAttribute('data-theme');
+            } else {
+                document.documentElement.setAttribute('data-theme', tema);
+            }
+            if (nomeExibicao) {
+                document.getElementById('currentThemeLabel').innerText = nomeExibicao;
+            }
+        }
+
+        function mudarTema(tema, nomeExibicao) {
+            aplicarTemaGlobal(tema, nomeExibicao);
+            localStorage.setItem('cardapio_pro_theme', tema);
+            localStorage.setItem('cardapio_pro_theme_name', nomeExibicao);
+            document.getElementById('themeMenu').classList.remove('show');
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const temaSalvo = localStorage.getItem('cardapio_pro_theme') || 'dark';
+            const nomeSalvo = localStorage.getItem('cardapio_pro_theme_name') || 'Midnight Blue';
+            aplicarTemaGlobal(temaSalvo, nomeSalvo);
+        });
+    </script>
 </body>
 </html>

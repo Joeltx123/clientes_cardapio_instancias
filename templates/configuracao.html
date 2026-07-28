@@ -3,20 +3,41 @@
 {% block title %}Configurações - Cardápio Pro{% endblock %}
 
 {% block content %}
-<div class="card">
-    <h2>Configurações do Estabelecimento</h2>
-    <form action="/admin/configuracoes" method="POST">
-        <div>
-            <label for="nome_restaurante">Nome do Estabelecimento:</label>
-            <input type="text" id="nome_restaurante" name="nome_restaurante" value="{{ config.nome_restaurante if config else 'Cardápio Pro' }}" required>
+<div style="max-width: 700px; margin: 0 auto;">
+    
+    {% if request.query_params.get('sucesso') == 'true' %}
+    <div style="background-color: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #34d399; padding: 1rem 1.25rem; border-radius: 12px; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem; font-weight: 500;">
+        <span>✅</span> Configurações salvas e atualizadas com sucesso no banco de dados!
+    </div>
+    {% endif %}
+
+    <div style="background-color: #111827; border: 1px solid #1f2937; border-radius: 16px; padding: 2.5rem; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);">
+        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem; border-bottom: 1px solid #1f2937; padding-bottom: 1.2rem;">
+            <div style="background-color: rgba(245, 158, 11, 0.1); padding: 0.75rem; border-radius: 12px; font-size: 1.5rem; border: 1px solid rgba(245, 158, 11, 0.2);">⚙️</div>
+            <div>
+                <h2 style="font-size: 1.25rem; margin: 0; color: #f9fafb; font-weight: 600;">Configurações do Estabelecimento</h2>
+                <p style="margin: 0.3rem 0 0 0; font-size: 0.9rem; color: #9ca3af;">Gerencie as informações principais exibidas no seu cardápio digital e mesas.</p>
+            </div>
         </div>
 
-        <div>
-            <label for="quantidade_mesas">Quantidade de Mesas:</label>
-            <input type="number" id="quantidade_mesas" name="quantidade_mesas" min="1" max="500" value="{{ config.quantidade_mesas if config else 5 }}" required>
-        </div>
+        <form action="/admin/configuracoes" method="POST">
+            <div style="margin-bottom: 1.5rem;">
+                <label for="nome_restaurante" style="display: block; font-weight: 500; margin-bottom: 0.5rem; color: #d1d5db; font-size: 0.9rem;">Nome do Estabelecimento</label>
+                <input type="text" id="nome_restaurante" name="nome_restaurante" value="{{ config.nome_restaurante if config else 'Cardápio Pro' }}" placeholder="Ex: Hamburgueria do Joel" required style="width: 100%; padding: 0.85rem 1rem; background-color: #030712; border: 1px solid #374151; border-radius: 10px; color: #f9fafb; font-size: 0.95rem; outline: none; transition: border-color 0.2s;">
+            </div>
 
-        <button type="submit">Salvar Configurações</button>
-    </form>
+            <div style="margin-bottom: 2rem;">
+                <label for="quantidade_mesas" style="display: block; font-weight: 500; margin-bottom: 0.5rem; color: #d1d5db; font-size: 0.9rem;">Quantidade Total de Mesas</label>
+                <input type="number" id="quantidade_mesas" name="quantidade_mesas" min="1" max="500" value="{{ config.quantidade_mesas if config else 5 }}" required style="width: 100%; padding: 0.85rem 1rem; background-color: #030712; border: 1px solid #374151; border-radius: 10px; color: #f9fafb; font-size: 0.95rem; outline: none; transition: border-color 0.2s;">
+                <small style="color: #9ca3af; display: block; margin-top: 0.4rem; font-size: 0.85rem;">Define quantos QR Codes de mesas serão gerados automaticamente.</small>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end;">
+                <button type="submit" style="background-color: #f59e0b; color: #030712; font-weight: 600; padding: 0.85rem 1.75rem; border: none; border-radius: 10px; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.3); font-size: 0.95rem;">
+                    💾 Salvar Alterações
+                </button>
+            </div>
+        </form>
+    </div>
 </div>
 {% endblock %}

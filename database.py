@@ -2,11 +2,11 @@ import os
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
-DB_HOST = os.getenv("DB_HOST", "localhost")
-DB_NAME = os.getenv("DB_NAME", "cardapio_db")
-DB_USER = os.getenv("DB_USER", "postgres")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "postgres")
-DB_PORT = os.getenv("DB_PORT", "5432")
+DB_HOST = "localhost"
+DB_NAME = "cardapio_db"
+DB_USER = "postgres"
+DB_PASSWORD = "postgres"
+DB_PORT = "5432"
 
 def get_db():
     conn = psycopg2.connect(
@@ -23,31 +23,37 @@ def init_db():
     conn = get_db()
     cursor = conn.cursor()
     
+    # Tabela de Estabelecimentos (Tenants) com Slug único
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS configuracao (
+        CREATE TABLE IF NOT EXISTS estabelecimentos (
             id SERIAL PRIMARY KEY,
-            nome_restaurante VARCHAR(100) NOT NULL,
-            quantidade_mesas INT NOT NULL
+            nome VARCHAR(100) NOT NULL,
+            slug VARCHAR(100) UNIQUE NOT NULL,
+            quantidade_mesas INT NOT NULL DEFAULT 10,
+            criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
     """)
-    
+
+    # Tabela de Produtos vinculada ao estabelecimento
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS produtos (
             id SERIAL PRIMARY KEY,
+            estabelecimento_id INT REFERENCES estabelecimentos(id) ON DELETE CASCADE,
             nome VARCHAR(100) NOT NULL,
             descricao TEXT,
             preco NUMERIC(10,2) NOT NULL,
             categoria VARCHAR(50) NOT NULL,
+            foto VARCHAR(255),
+            visivel BOOLEAN DEFAULT TRUE,
             arquivado BOOLEAN DEFAULT FALSE
         );
     """)
 
-    # Dropa a tabela de pedidos para garantir que recrie com a coluna forma_pagamento correta
-    cursor.execute("DROP TABLE IF EXISTS pedidos CASCADE;")
-
+    # Tabela de Pedidos vinculada ao estabelecimento
     cursor.execute("""
-        CREATE TABLE pedidos (
+        CREATE TABLE IF NOT EXISTS pedidos (
             id SERIAL PRIMARY KEY,
+            estabelecimento_id INT REFERENCES estabelecimentos(id) ON DELETE CASCADE,
             mesa INT NOT NULL,
             itens TEXT NOT NULL,
             total NUMERIC(10,2) NOT NULL,
@@ -56,7 +62,7 @@ def init_db():
             criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
     """)
-    
+
     conn.commit()
     cursor.close()
     conn.close()

@@ -14,17 +14,18 @@ def gerar_qrcodes(request: Request):
     config = cursor.fetchone()
     cursor.close()
     db.close()
-    
-    total_mesas = config['quantidade_mesas'] if config else 0
-    
-    # Pega o host atual da requisição para montar o link correto do QR code
+
+    total_mesas = config['quantidade_mesas'] if config and config['quantidade_mesas'] else 5
+
     base_url = str(request.base_url).rstrip('/')
-    
+
     mesas = []
     for i in range(1, total_mesas + 1):
+        link_mesa = f"{base_url}/mesa/{i}"
         mesas.append({
             "numero": i,
-            "url": f"{base_url}/mesa/{i}"
+            "url": link_mesa,
+            "qr": f"https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={link_mesa}"
         })
-        
-    return templates.TemplateResponse(request, "qrcodes.html", {"mesas": mesas})
+
+    return templates.TemplateResponse(request, "qrcodes.html", {"request": request, "mesas": mesas})
