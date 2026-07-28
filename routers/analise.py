@@ -21,4 +21,16 @@ async def analise_get(request: Request, slug: str):
         cursor.close()
         db.close()
 
-    return templates.TemplateResponse(request, "analise.html", {"request": request, "slug": slug, "estab_id": est_id})
+    # Dicionário de resumo padrão para evitar erros caso a consulta completa venha depois via JS
+    resumo = {
+        "faturamento_total": 0.0,
+        "total_pedidos": 0,
+        "ticket_medio": 0.0
+    }
+
+    return templates.TemplateResponse(request, "analise.html", {
+        "request": request, 
+        "slug": slug, 
+        "estab_id": est_id,
+        "resumo": resumo
+    })
