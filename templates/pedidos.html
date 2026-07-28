@@ -1,5 +1,169 @@
-{% extends "base.html" if t != "index" and t != "cardapio_digital" else "" %}
+{% extends "base.html" %}
 {% block content %}
-<h2>Página: pedidos</h2>
-<p>Conteúdo da seção pedidos carregado com sucesso.</p>
+<div style="max-width: 1200px; margin: 0 auto; padding: 24px 16px;">
+    
+    <!-- Cabeçalho -->
+    <div style="display: flex; flex-direction: column; md-flex-direction: row; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 32px;">
+        <div>
+            <div style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 16px; background: rgba(245, 158, 11, 0.1); color: #f59e0b; font-size: 1.5rem; margin-bottom: 12px; border: 1px solid rgba(245, 158, 11, 0.2);">
+                🪑
+            </div>
+            <h1 style="font-size: 1.75rem; font-weight: 800; color: var(--text-main, #ffffff); letter-spacing: -0.025em; margin: 0;">Gestão de Mesas e Pedidos</h1>
+            <p style="font-size: 0.875rem; color: var(--text-muted, #9ca3af); margin-top: 4px;">Acompanhe o status do salão em tempo real e imprima comandas para a cozinha.</p>
+        </div>
+
+        <!-- Indicador Global de Novos Pedidos -->
+        <div id="alerta-novo-pedido" style="display: none; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 12px; background: #f59e0b; color: #030712; font-weight: 800; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; box-shadow: 0 10px 25px -5px rgba(245, 158, 11, 0.4);">
+            <span>🔥</span>
+            <span>Novo Pedido Chegou!</span>
+        </div>
+    </div>
+
+    <!-- Grid de Mesas Dinâmico -->
+    <div id="grid-mesas" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 16px;">
+        <!-- Injetado via JS -->
+    </div>
+
+</div>
+
+<!-- Modal / Painel de Comanda Flutuante -->
+<div id="modal-comanda" style="display: none; position: fixed; inset: 0; background: rgba(3, 7, 18, 0.85); backdrop-filter: blur(4px); z-index: 9999; align-items: center; justify-content: center; padding: 16px;">
+    <div style="width: 100%; max-width: 400px; border-radius: 24px; padding: 24px; background: var(--bg-card, #1a1512); border: 1px solid var(--border-color, rgba(255,255,255,0.15)); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);">
+        
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+            <div>
+                <span style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #f59e0b;">Comanda de Cozinha</span>
+                <h3 id="modal-titulo-mesa" style="font-size: 1.25rem; font-weight: 800; color: var(--text-main, #ffffff); margin: 2px 0 0 0;">Mesa --</h3>
+            </div>
+            <button onclick="fecharComanda()" style="width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.1); border: none; color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1rem;">✕</button>
+        </div>
+
+        <!-- Lista de itens -->
+        <div id="modal-itens-pedido" style="display: flex; flex-direction: column; gap: 10px; max-height: 240px; overflow-y: auto; padding-right: 4px; margin-bottom: 20px;">
+            <!-- Itens inseridos via JS -->
+        </div>
+
+        <div style="display: flex; gap: 10px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 16px;">
+            <button onclick="imprimirComanda()" style="flex: 1; padding: 12px; background: #f59e0b; color: #030712; font-weight: 800; font-size: 0.85rem; border-radius: 12px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <span>🖨️</span> Imprimir
+            </button>
+            <button onclick="liberarMesa()" style="padding: 12px 16px; background: rgba(244, 63, 94, 0.15); color: #fda4af; border: 1px solid rgba(244, 63, 94, 0.3); font-weight: 700; font-size: 0.85rem; border-radius: 12px; cursor: pointer;">
+                Liberar
+            </button>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    const totalMesas = {{ estabelecimento.quantidade_mesas if estabelecimento and estabelecimento.quantidade_mesas else 8 }};
+    
+    let mesasComPedidos = {
+        3: [
+            { quantidade: 2, nome: "Burger Duplo Bacon", obs: "Sem cebola" },
+            { quantidade: 1, nome: "Batata Frita Média", obs: "" },
+            { quantidade: 3, nome: "Coca-Cola Lata", obs: "Bem gelada" }
+        ]
+    };
+
+    let mesaAtualSelecionada = null;
+
+    function renderizarMesas() {
+        const grid = document.getElementById('grid-mesas');
+        grid.innerHTML = '';
+
+        let temPedidoNovo = false;
+
+        for (let i = 1; i <= totalMesas; i++) {
+            const temPedido = mesasComPedidos[i] && mesasComPedidos[i].length > 0;
+            if (temPedido) temPedidoNovo = true;
+
+            const card = document.createElement('div');
+            card.style.cssText = `
+                padding: 16px;
+                border-radius: 16px;
+                border: 1px solid ${temPedido ? 'rgba(245, 158, 11, 0.4)' : 'var(--border-color, rgba(255,255,255,0.08))'};
+                background: ${temPedido ? 'rgba(245, 158, 11, 0.12)' : 'var(--bg-card, rgba(0,0,0,0.3))'};
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                cursor: pointer;
+                transition: transform 0.2s ease;
+                min-height: 130px;
+            `;
+
+            card.innerHTML = `
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                    <span style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted, #9ca3af);">Mesa</span>
+                    <span style="width: 8px; height: 8px; border-radius: 50%; background: ${temPedido ? '#f59e0b' : '#10b981'};"></span>
+                </div>
+                <div>
+                    <h2 style="font-size: 1.75rem; font-weight: 900; color: var(--text-main, #ffffff); margin: 0;">#${i}</h2>
+                    <p style="font-size: 0.75rem; font-weight: 600; margin: 4px 0 0 0; color: ${temPedido ? '#fbb24' : '#34d399'};">
+                        ${temPedido ? '🔴 Ocupada' : '🟢 Livre'}
+                    </p>
+                </div>
+                <div style="margin-top: 12px; font-size: 0.75rem; font-weight: 700; color: var(--text-main, #ffffff); border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px;">
+                    ${temPedido ? 'Ver Comanda ➔' : 'Aguardando'}
+                </div>
+            `;
+
+            card.onclick = () => abrirComanda(i);
+            grid.appendChild(card);
+        }
+
+        const alerta = document.getElementById('alerta-novo-pedido');
+        if (temPedidoNovo) {
+            alerta.style.display = 'flex';
+        } else {
+            alerta.style.display = 'none';
+        }
+    }
+
+    function abrirComanda(numeroMesa) {
+        mesaAtualSelecionada = numeroMesa;
+        document.getElementById('modal-titulo-mesa').innerText = `Mesa ${numeroMesa}`;
+        
+        const containerItens = document.getElementById('modal-itens-pedido');
+        containerItens.innerHTML = '';
+
+        const itens = mesasComPedidos[numeroMesa];
+
+        if (!itens || itens.length === 0) {
+            containerItens.innerHTML = `<p style="font-size: 0.85rem; text-align: center; color: var(--text-muted, #9ca3af); padding: 16px 0;">Nenhum pedido ativo nesta mesa.</p>`;
+        } else {
+            itens.forEach(item => {
+                containerItens.innerHTML += `
+                    <div style="padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 2px;">
+                            <span style="padding: 2px 6px; border-radius: 4px; background: rgba(245, 158, 11, 0.2); color: #f59e0b; font-weight: 800; font-size: 0.75rem;">${item.quantidade}x</span>
+                            <h4 style="font-weight: 700; font-size: 0.85rem; color: var(--text-main, #ffffff); margin: 0;">${item.nome}</h4>
+                        </div>
+                        ${item.obs ? `<p style="font-size: 0.75rem; color: #fbbf24; margin: 4px 0 0 0;">Obs: ${item.obs}</p>` : ''}
+                    </div>
+                `;
+            });
+        }
+
+        document.getElementById('modal-comanda').style.display = 'flex';
+    }
+
+    function fecharComanda() {
+        document.getElementById('modal-comanda').style.display = 'none';
+    }
+
+    function imprimirComanda() {
+        window.print();
+    }
+
+    function liberarMesa() {
+        if (mesaAtualSelecionada) {
+            delete mesasComPedidos[mesaAtualSelecionada];
+            fecharComanda();
+            renderizarMesas();
+        }
+    }
+
+    window.onload = renderizarMesas;
+</script>
 {% endblock %}
