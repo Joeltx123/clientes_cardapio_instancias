@@ -1,36 +1,24 @@
 from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from database import get_db
 
 router = APIRouter(prefix="/admin")
 templates = Jinja2Templates(directory="templates")
 
-@router.get("/backup", response_class=HTMLResponse)
-def painel_backup(request: Request):
-    return templates.TemplateResponse(request, "backup.html", {})
-
-@router.get("/backup/exportar")
-def exportar_dados():
+@router.get("/{slug}/backup")
+async def backup_get(request: Request, slug: str):
     db = get_db()
     cursor = db.cursor()
-    
-    cursor.execute("SELECT * FROM configuracao")
-    config = cursor.fetchall()
-    
-    cursor.execute("SELECT * FROM produtos")
-    produtos = cursor.fetchall()
-    
-    cursor.execute("SELECT * FROM pedidos")
-    pedidos = cursor.fetchall()
-    
-    cursor.close()
-    db.close()
-    
-    dados_backup = {
-        "configuracao": config,
-        "produtos": produtos,
-        "pedidos": pedidos
-    }
-    
-    return JSONResponse(content=dados_backup, headers={"Content-Disposition": "attachment; filename=backup_cardapio_pro.json"})
+    est_id = 1
+    try:
+        cursor.execute("SELECT id FROM estabelecimentos WHERE slug = %s", (slug,))
+        est = cursor.fetchone()
+        if est:
+            est_id = est[0]
+    except Exception:
+        pass
+    finally:
+        cursor.close()
+        db.close()
+
+    return templates.TemplateResponse(request, name="backup.html", context={"request": request, "slug": slug, "estab_id": est_id})

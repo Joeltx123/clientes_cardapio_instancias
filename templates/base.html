@@ -312,11 +312,33 @@
         }
 
 </style>
-</head>
+
+    <script>
+    (function() {
+        const parts = window.location.pathname.split("/");
+        if (parts.length >= 3 && parts[1] === "admin" && parts[2]) {
+            const currentSlug = parts[2];
+            window.APP_SLUG = currentSlug;
+
+            document.addEventListener("DOMContentLoaded", () => {
+                document.querySelectorAll("a[href^='/admin/'], form[action^='/admin/']").forEach(el => {
+                    const attr = el.hasAttribute("href") ? "href" : "action";
+                    let val = el.getAttribute(attr);
+                    if (val.startsWith("/admin/") && !val.includes("/" + currentSlug + "/")) {
+                        let cleanPath = val.replace(/^\/admin\/+/, "");
+                        el.setAttribute(attr, `/admin/${currentSlug}/${cleanPath}`);
+                    }
+                });
+            });
+        }
+    })();
+    </script>
+    </head>
+    
 <body>
 
     <header>
-        <a href="/admin/cardapio" class="nav-brand">
+        <a href="/admin/{{ slug }}/cardapio" class="nav-brand">
             🍽️ Cardápio Pro <span style="font-size: 0.75rem; font-weight: 400; color: var(--text-muted); border-left: 1px solid var(--border-color); padding-left: 0.75rem;">Painel de Gestão</span>
         </a>
 
@@ -390,5 +412,23 @@
             aplicarTemaGlobal(temaSalvo, nomeSalvo);
         });
     </script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const pathSegments = window.location.pathname.split("/");
+    // Se estiver em /admin/slug/pagina, extrai o slug
+    if (pathSegments.length >= 3 && pathSegments[1] === "admin" && pathSegments[2] !== "") {
+        const currentSlug = pathSegments[2];
+        document.querySelectorAll("nav a, .menu a, a[href*=\"/admin/\}").forEach(a => {
+            let href = a.getAttribute("href");
+            if (href && href.startsWith("/admin/") && !href.includes(currentSlug)) {
+                // Substitui barras duplas ou links quebrados por /admin/slug/rota
+                const cleanHref = href.replace(/\/admin\/+(\{\{\s*slug\s*\}\})?\/?/, "/admin/" + currentSlug + "/");
+                a.setAttribute("href", cleanHref);
+            }
+        });
+    }
+});
+</script>
 </body>
 </html>

@@ -6,7 +6,7 @@ from database import get_db
 router = APIRouter(prefix="/admin")
 templates = Jinja2Templates(directory="templates")
 
-@router.get("/registros", response_class=HTMLResponse)
+@router.get("/{slug}/registros", response_class=HTMLResponse)
 def listar_registros(request: Request):
     db = get_db()
     cursor = db.cursor()

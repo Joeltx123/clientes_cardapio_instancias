@@ -1,29 +1,24 @@
-from fastapi import APIRouter, Request, Form
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import APIRouter, Request
 from fastapi.templating import Jinja2Templates
 from database import get_db
 
 router = APIRouter(prefix="/admin")
 templates = Jinja2Templates(directory="templates")
 
-@router.get("/pedidos", response_class=HTMLResponse)
-def listar_pedidos(request: Request):
+@router.get("/{slug}/pedidos")
+async def pedidos_get(request: Request, slug: str):
     db = get_db()
     cursor = db.cursor()
-    cursor.execute("SELECT * FROM pedidos ORDER BY criado_em DESC")
-    pedidos = cursor.fetchall()
-    cursor.close()
-    db.close()
-    
-    return templates.TemplateResponse(request, "pedidos_admin.html", {"pedidos": pedidos})
+    est_id = 1
+    try:
+        cursor.execute("SELECT id FROM estabelecimentos WHERE slug = %s", (slug,))
+        est = cursor.fetchone()
+        if est:
+            est_id = est[0]
+    except Exception:
+        pass
+    finally:
+        cursor.close()
+        db.close()
 
-@router.post("/pedidos/status/{id}")
-def atualizar_status(id: int, status: str = Form(...)):
-    db = get_db()
-    cursor = db.cursor()
-    cursor.execute("UPDATE pedidos SET status = %s WHERE id = %s", (status, id))
-    db.commit()
-    cursor.close()
-    db.close()
-    
-    return RedirectResponse(url="/admin/pedidos", status_code=303)
+    return templates.TemplateResponse(request, name="pedidos.html", context={"request": request, "slug": slug, "estab_id": est_id})

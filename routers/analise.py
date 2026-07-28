@@ -1,32 +1,24 @@
 from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from database import get_db
 
 router = APIRouter(prefix="/admin")
 templates = Jinja2Templates(directory="templates")
 
-@router.get("/analise", response_class=HTMLResponse)
-def relatorio_analise(request: Request):
+@router.get("/{slug}/analise")
+async def analise_get(request: Request, slug: str):
     db = get_db()
     cursor = db.cursor()
-    
-    # Total faturado e quantidade total de pedidos
-    cursor.execute("SELECT COALESCE(SUM(total), 0) as faturamento_total, COUNT(*) as total_pedidos FROM pedidos")
-    resumo = cursor.fetchone()
-    
-    # Vendas agrupadas por forma de pagamento
-    cursor.execute("SELECT forma_pagamento, COALESCE(SUM(total), 0) as total, COUNT(*) as qtd FROM pedidos GROUP BY forma_pagamento")
-    por_pagamento = cursor.fetchall()
-    
-    cursor.close()
-    db.close()
-    
-    return templates.TemplateResponse(
-        request, 
-        "analise.html", 
-        {
-            "resumo": resumo,
-            "por_pagamento": por_pagamento
-        }
-    )
+    est_id = 1
+    try:
+        cursor.execute("SELECT id FROM estabelecimentos WHERE slug = %s", (slug,))
+        est = cursor.fetchone()
+        if est:
+            est_id = est[0]
+    except Exception:
+        pass
+    finally:
+        cursor.close()
+        db.close()
+
+    return templates.TemplateResponse(request, "analise.html", {"request": request, "slug": slug, "estab_id": est_id})
