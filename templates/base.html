@@ -333,7 +333,65 @@
         }
     })();
     </script>
+    <!-- corrige-painel-tema -->
+    <style>
+    /* Ajuste dinâmico para os painéis internos acompanharem o tema */
+    .bg-card-color, .bg-card-color, .card-painel, .panel-content, div[class*="bg-"] {
+        /* Se houver classes estáticas de azul escuro, substituímos por variáveis ou cores neutras do tema */
+    }
+    .min-h-screen, body {
+        background-color: var(--bg-main, #0f172a);
+    }
+    </style>
+    
+    <script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const themeSelector = document.querySelector("#theme-selector") || document.querySelector("select[name='theme']") || document.getElementById("temaSelect");
+        
+        // Monitora mudanças no seletor de temas ou cliques nos dropdowns de tema
+        document.querySelectorAll("[data-theme-option], .theme-option, select").forEach(el => {
+            el.addEventListener("change", (e) => {
+                setTimeout(applyThemeStyles, 50);
+            });
+        });
+
+        function applyThemeStyles() {
+            // Verifica se o tema atual é claro ou escuro pelo estilo do body/header
+            const isLight = document.body.classList.contains("light") || 
+                            document.documentElement.classList.contains("light") ||
+                            document.querySelector(".bg-white, .bg-gray-50");
+            
+            document.querySelectorAll(".bg-slate-900, .bg-gray-900, .card-painel").forEach(panel => {
+                if (window.getComputedStyle(document.body).backgroundColor !== "rgb(15, 23, 42)") {
+                    // Tema claro ativo
+                    panel.style.backgroundColor = "#ffffff";
+                    panel.style.color = "#1f2937";
+                    panel.style.borderColor = "#e5e7eb";
+                } else {
+                    // Tema escuro ativo
+                    panel.style.backgroundColor = "";
+                    panel.style.color = "";
+                    panel.style.borderColor = "";
+                }
+            });
+        }
+    });
+    </script>
+    
+    <style>
+    /* Força os painéis de configuração a acompanharem a cor de fundo do tema selecionado */
+    body[data-theme*="light"] .bg-slate-900, 
+    body[data-theme*="light"] .bg-gray-900,
+    body:not(.dark) .bg-slate-900,
+    body:not(.dark) .bg-gray-900 {
+        background-color: #ffffff !important;
+        color: #111827 !important;
+        border-color: #e5e7eb !important;
+    }
+    </style>
     </head>
+    
+    
     
 <body>
 

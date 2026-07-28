@@ -1,43 +1,58 @@
 {% extends "base.html" %}
-
-{% block title %}Configurações - Cardápio Pro{% endblock %}
-
 {% block content %}
-<div style="max-width: 700px; margin: 0 auto;">
+<div class="max-w-xl mx-auto px-4 py-12">
     
-    {% if request.query_params.get('sucesso') == 'true' %}
-    <div style="background-color: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #34d399; padding: 1rem 1.25rem; border-radius: 12px; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem; font-weight: 500;">
-        <span>✅</span> Configurações salvas e atualizadas com sucesso no banco de dados!
+    <!-- Cabeçalho -->
+    <div class="mb-8 text-center">
+        <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-500 text-2xl mb-4 border border-amber-500/20">
+            ⚙️
+        </div>
+        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight" style="color: var(--text-main, #ffffff);">Configurações</h1>
+        <p class="text-sm mt-2" style="color: var(--text-muted, #9ca3af);">Gerencie os dados principais do estabelecimento com precisão.</p>
+    </div>
+
+    <!-- Alerta de Sucesso -->
+    {% if request.query_params.get('sucesso') == 'true' or sucesso %}
+    <div id="toast-sucesso" class="mb-6 p-4 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-sm font-semibold flex items-center justify-center space-x-2 shadow-lg">
+        <span>✅</span>
+        <span>Alterações salvas com sucesso!</span>
     </div>
     {% endif %}
 
-    <div style="background-color: #111827; border: 1px solid #1f2937; border-radius: 16px; padding: 2.5rem; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);">
-        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem; border-bottom: 1px solid #1f2937; padding-bottom: 1.2rem;">
-            <div style="background-color: rgba(245, 158, 11, 0.1); padding: 0.75rem; border-radius: 12px; font-size: 1.5rem; border: 1px solid rgba(245, 158, 11, 0.2);">⚙️</div>
-            <div>
-                <h2 style="font-size: 1.25rem; margin: 0; color: #f9fafb; font-weight: 600;">Configurações do Estabelecimento</h2>
-                <p style="margin: 0.3rem 0 0 0; font-size: 0.9rem; color: #9ca3af;">Gerencie as informações principais exibidas no seu cardápio digital e mesas.</p>
-            </div>
+    <!-- Formulário apontando explicitamente para a URL base de configurações -->
+    <form method="POST" action="" style="display: flex; flex-direction: column; gap: 24px;">
+        
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+            <label style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-main, #fbbf24);">Nome do Estabelecimento</label>
+            <input type="text" name="nome_restaurante" value="{{ estabelecimento.nome_restaurante if estabelecimento else (estabelecimento.nome if estabelecimento else '') }}" 
+                   style="width: 100%; padding: 14px 16px; border-radius: 12px; background: var(--bg-card, rgba(0, 0, 0, 0.3)); color: var(--text-main, #ffffff); border: 1px solid var(--border-color, rgba(255, 255, 255, 0.15)); font-size: 0.95rem; outline: none;">
         </div>
 
-        <form action="/admin/configuracoes" method="POST">
-            <div style="margin-bottom: 1.5rem;">
-                <label for="nome_restaurante" style="display: block; font-weight: 500; margin-bottom: 0.5rem; color: #d1d5db; font-size: 0.9rem;">Nome do Estabelecimento</label>
-                <input type="text" id="nome_restaurante" name="nome_restaurante" value="{{ config.nome_restaurante if config else 'Cardápio Pro' }}" placeholder="Ex: Hamburgueria do Joel" required style="width: 100%; padding: 0.85rem 1rem; background-color: #030712; border: 1px solid #374151; border-radius: 10px; color: #f9fafb; font-size: 0.95rem; outline: none; transition: border-color 0.2s;">
-            </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+            <label style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-main, #fbbf24);">Total de Mesas</label>
+            <input type="number" name="quantidade_mesas" value="{{ estabelecimento.quantidade_mesas if estabelecimento else (estabelecimento.mesas if estabelecimento else 5) }}" 
+                   style="width: 100%; padding: 14px 16px; border-radius: 12px; background: var(--bg-card, rgba(0, 0, 0, 0.3)); color: var(--text-main, #ffffff); border: 1px solid var(--border-color, rgba(255, 255, 255, 0.15)); font-size: 0.95rem; outline: none;">
+            <span style="font-size: 0.8rem; color: var(--text-muted, #9ca3af); margin-top: 4px;">Define a quantidade total de QR Codes gerados para o salão.</span>
+        </div>
 
-            <div style="margin-bottom: 2rem;">
-                <label for="quantidade_mesas" style="display: block; font-weight: 500; margin-bottom: 0.5rem; color: #d1d5db; font-size: 0.9rem;">Quantidade Total de Mesas</label>
-                <input type="number" id="quantidade_mesas" name="quantidade_mesas" min="1" max="500" value="{{ config.quantidade_mesas if config else 5 }}" required style="width: 100%; padding: 0.85rem 1rem; background-color: #030712; border: 1px solid #374151; border-radius: 10px; color: #f9fafb; font-size: 0.95rem; outline: none; transition: border-color 0.2s;">
-                <small style="color: #9ca3af; display: block; margin-top: 0.4rem; font-size: 0.85rem;">Define quantos QR Codes de mesas serão gerados automaticamente.</small>
-            </div>
+        <div style="padding-top: 12px;">
+            <button type="submit" style="width: 100%; padding: 16px; background: #f59e0b; color: #030712; font-weight: 800; font-size: 0.95rem; border-radius: 12px; border: none; cursor: pointer; box-shadow: 0 10px 25px -5px rgba(245, 158, 11, 0.3);">
+                💾 Salvar Alterações
+            </button>
+        </div>
 
-            <div style="display: flex; justify-content: flex-end;">
-                <button type="submit" style="background-color: #f59e0b; color: #030712; font-weight: 600; padding: 0.85rem 1.75rem; border: none; border-radius: 10px; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.3); font-size: 0.95rem;">
-                    💾 Salvar Alterações
-                </button>
-            </div>
-        </form>
-    </div>
+    </form>
+
 </div>
+
+<script>
+    setTimeout(() => {
+        const toast = document.getElementById('toast-sucesso');
+        if (toast) {
+            toast.style.transition = 'opacity 0.5s ease';
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 500);
+        }
+    }, 4000);
+</script>
 {% endblock %}
