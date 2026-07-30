@@ -22,8 +22,14 @@ def get_db():
 def init_db():
     conn = get_db()
     cursor = conn.cursor()
-    
-    # Tabela de Estabelecimentos (Tenants) com Slug único
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS configuracao (
+            id SERIAL PRIMARY KEY,
+            quantidade_mesas INT NOT NULL DEFAULT 10
+        );
+    """)
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS estabelecimentos (
             id SERIAL PRIMARY KEY,
@@ -34,11 +40,9 @@ def init_db():
         );
     """)
 
-    # Tabela de Produtos vinculada ao estabelecimento
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS produtos (
             id SERIAL PRIMARY KEY,
-            estabelecimento_id INT REFERENCES estabelecimentos(id) ON DELETE CASCADE,
             nome VARCHAR(100) NOT NULL,
             descricao TEXT,
             preco NUMERIC(10,2) NOT NULL,
@@ -49,11 +53,10 @@ def init_db():
         );
     """)
 
-    # Tabela de Pedidos vinculada ao estabelecimento
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS pedidos (
             id SERIAL PRIMARY KEY,
-            estabelecimento_id INT REFERENCES estabelecimentos(id) ON DELETE CASCADE,
+            tenant VARCHAR(100),
             mesa INT NOT NULL,
             itens TEXT NOT NULL,
             total NUMERIC(10,2) NOT NULL,

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <div style="max-width: 1200px; margin: 0 auto; padding: 24px 16px;">
-    
+
     <!-- Cabeçalho -->
     <div style="display: flex; flex-direction: column; md-flex-direction: row; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 32px;">
         <div>
@@ -29,7 +29,7 @@
 <!-- Modal / Painel de Comanda Flutuante -->
 <div id="modal-comanda" style="display: none; position: fixed; inset: 0; background: rgba(3, 7, 18, 0.85); backdrop-filter: blur(4px); z-index: 9999; align-items: center; justify-content: center; padding: 16px;">
     <div style="width: 100%; max-width: 400px; border-radius: 24px; padding: 24px; background: var(--bg-card, #1a1512); border: 1px solid var(--border-color, rgba(255,255,255,0.15)); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);">
-        
+
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1);">
             <div>
                 <span style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #f59e0b;">Comanda de Cozinha</span>
@@ -56,15 +56,20 @@
 </div>
 
 <script>
-    const totalMesas = {{ estabelecimento.quantidade_mesas if estabelecimento and estabelecimento.quantidade_mesas else 8 }};
-    
-    let mesasComPedidos = {
-        3: [
-            { quantidade: 2, nome: "Burger Duplo Bacon", obs: "Sem cebola" },
-            { quantidade: 1, nome: "Batata Frita Média", obs: "" },
-            { quantidade: 3, nome: "Coca-Cola Lata", obs: "Bem gelada" }
-        ]
-    };
+    // Pega a quantidade de mesas cadastrada nas configurações do banco
+    {% set qtd_mesas = 10 %}
+    {% if config %}
+        {% if config is mapping %}
+            {% set qtd_mesas = config.quantidade_mesas %}
+        {% else %}
+            {% set qtd_mesas = config[2] if config|length > 2 else 10 %}
+        {% endif %}
+    {% endif %}
+
+    const totalMesas = {{ qtd_mesas }};
+
+    // Pega os pedidos reais vindos do banco de dados Python
+    let mesasComPedidos = {{ pedidos_por_mesa | tojson | safe }};
 
     let mesaAtualSelecionada = null;
 
@@ -123,7 +128,7 @@
     function abrirComanda(numeroMesa) {
         mesaAtualSelecionada = numeroMesa;
         document.getElementById('modal-titulo-mesa').innerText = `Mesa ${numeroMesa}`;
-        
+
         const containerItens = document.getElementById('modal-itens-pedido');
         containerItens.innerHTML = '';
 
@@ -156,11 +161,22 @@
         window.print();
     }
 
-    function liberarMesa() {
+    async function liberarMesa() {
         if (mesaAtualSelecionada) {
-            delete mesasComPedidos[mesaAtualSelecionada];
-            fecharComanda();
-            renderizarMesas();
+            try {
+                const response = await fetch(`/admin/{{ slug }}/pedidos/liberar/${mesaAtualSelecionada}`, {
+                    method: 'POST'
+                });
+                if (response.ok) {
+                    delete mesasComPedidos[mesaAtualSelecionada];
+                    fecharComanda();
+                    renderizarMesas();
+                } else {
+                    alert('Erro ao liberar mesa.');
+                }
+            } catch (e) {
+                console.error(e);
+            }
         }
     }
 
