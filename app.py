@@ -17,7 +17,7 @@ app = FastAPI(title="Cardápio Pro API - PostgreSQL")
 from routers import (
     analise, backup, cardapio, cardapiodigital, 
     cliente, configuracao, delivery, pagamento, 
-    pedidos, qr_code, registro, registros
+    pedidos, qr_code, registro
 )
 
 app.include_router(analise.router)
@@ -31,7 +31,7 @@ app.include_router(pagamento.router)
 app.include_router(pedidos.router)
 app.include_router(qr_code.router)
 app.include_router(registro.router)
-app.include_router(registros.router)
+
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
