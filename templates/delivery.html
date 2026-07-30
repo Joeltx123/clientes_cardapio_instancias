@@ -1,26 +1,152 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="max-w-4xl mx-auto px-4 py-12">
-    
-    <!-- Cabeçalho limpo sem o painel de fundo -->
-    <div class="mb-10 text-center">
-        <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-500 text-2xl mb-4 border border-amber-500/20">
+<div class="max-w-4xl mx-auto px-4 py-8 space-y-6">
+
+    <!-- Cabeçalho Principal -->
+    <div class="mb-6 text-center">
+        <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-500 text-2xl mb-3 border border-amber-500/20 shadow-lg shadow-amber-500/5">
             🛵
         </div>
         <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight" style="color: var(--text-main, #ffffff);">Painel de Delivery</h1>
-        <p class="text-sm mt-2" style="color: var(--text-muted, #9ca3af);">Gerencie os pedidos e taxas de entrega externa do estabelecimento.</p>
+        <p class="text-xs sm:text-sm mt-1.5 max-w-md mx-auto px-2" style="color: var(--text-muted, #9ca3af);">Gerencie os pedidos e o link de atendimento externo do seu estabelecimento.</p>
     </div>
 
-    <!-- Conteúdo fluido -->
-    <div style="display: flex; flex-direction: column; gap: 24px; align-items: center; justify-content: center; padding: 40px 20px; border-radius: 24px; background: var(--bg-card, rgba(0, 0, 0, 0.2)); border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08)); text-align: center;">
+    <!-- Caixa do Link do Cardápio de Delivery - 100% Funcional -->
+    <div class="p-5 sm:p-6 rounded-2xl bg-slate-900/90 border border-emerald-500/30 shadow-xl relative overflow-hidden space-y-4 backdrop-blur-md">
+        <div class="absolute top-0 left-0 w-1.5 h-full bg-emerald-500"></div>
         
-        <div style="font-size: 3rem; margin-bottom: -10px;">📦</div>
-        
-        <div>
-            <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--text-main, #ffffff); margin-bottom: 6px;">Nenhum pedido de delivery ativo no momento.</h3>
-            <p style="font-size: 0.85rem; color: var(--text-muted, #9ca3af); max-width: 320px; margin: 0 auto;">As novas solicitações de entrega aparecerão automaticamente aqui.</p>
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <span class="text-lg">🔗</span>
+                <h2 class="text-xs sm:text-sm font-bold text-emerald-400 tracking-wider uppercase">Link do Cardápio Digital</h2>
+            </div>
+            <span class="text-[10px] bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded-full font-bold border border-emerald-500/20 tracking-wide">ONLINE</span>
         </div>
+        
+        <p class="text-xs leading-relaxed" style="color: var(--text-muted, #9ca3af);">Envie este link para seus clientes realizarem pedidos diretamente no delivery:</p>
+        
+        <div class="space-y-3 pt-1">
+            <div class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-3 text-xs text-emerald-300 font-mono select-all overflow-x-auto whitespace-nowrap">
+                http://0.0.0.0:5003/delivery/{{ tenant }}
+            </div>
+            
+            <button type="button" onclick="copiarLinkSeguro('http://0.0.0.0:5003/delivery/{{ tenant }}', this)" class="w-full bg-emerald-600 hover:bg-emerald-500 active:scale-95 px-5 py-3 rounded-xl text-xs font-bold text-white transition-all shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-2">
+                <span>📋 Copiar Link do Delivery</span>
+            </button>
+        </div>
+    </div>
 
+    <script>
+    function copiarLinkSeguro(link, btn) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(link).then(() => {
+                feedbackCopiado(btn);
+            }).catch(() => {
+                fallbackCopiar(link, btn);
+            });
+        } else {
+            fallbackCopiar(link, btn);
+        }
+    }
+
+    function fallbackCopiar(text, btn) {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.style.position = "fixed";  // Evita scroll na tela ao colar
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        try {
+            document.execCommand('copy');
+            feedbackCopiado(btn);
+        } catch (err) {
+            alert("Erro ao copiar o link. Tente selecionar manualmente.");
+        }
+        document.body.removeChild(textarea);
+    }
+
+    function feedbackCopiado(btn) {
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = '<span>✅ Link Copiado com Sucesso!</span>';
+        btn.classList.remove('bg-emerald-600', 'hover:bg-emerald-500');
+        btn.classList.add('bg-emerald-700');
+        
+        setTimeout(() => {
+            btn.innerHTML = originalHTML;
+            btn.classList.remove('bg-emerald-700');
+            btn.classList.add('bg-emerald-600', 'hover:bg-emerald-500');
+        }, 2000);
+    }
+    </script>
+
+    <!-- Seção de Pedidos Pendentes -->
+    <div class="space-y-4">
+        <div class="flex items-center justify-between px-1">
+            <h2 class="text-sm sm:text-base font-bold flex items-center gap-2" style="color: var(--text-main, #ffffff);">
+                📦 Pedidos de Delivery Pendentes
+            </h2>
+            {% if pedidos %}
+            <span class="text-xs bg-amber-500/10 text-amber-400 font-bold px-2.5 py-1 rounded-lg border border-amber-500/20">
+                {{ pedidos|length }} {% if pedidos|length == 1 %}pedido{% else %}pedidos{% endif %}
+            </span>
+            {% endif %}
+        </div>
+        
+        {% if not pedidos %}
+        <div class="flex flex-col items-center justify-center p-8 sm:p-12 rounded-2xl bg-slate-900/60 border border-slate-800/80 text-center backdrop-blur-md shadow-xl space-y-3">
+            <div class="text-4xl">📦</div>
+            <div class="space-y-1">
+                <h3 class="text-sm sm:text-base font-bold text-slate-100">Nenhum pedido de delivery ativo no momento.</h3>
+                <p class="text-xs text-slate-400 max-w-xs mx-auto">As novas solicitações de entrega aparecerão automaticamente aqui em tempo real.</p>
+            </div>
+        </div>
+        {% else %}
+            <div class="grid gap-4">
+                {% for p in pedidos %}
+                <div class="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl transition hover:border-amber-500/40 space-y-4 backdrop-blur-md">
+                    <!-- Topo do Card -->
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs bg-amber-500/15 text-amber-400 px-3 py-1 rounded-xl font-black border border-amber-500/30">
+                                #{{ p.id }}
+                            </span>
+                            <span class="text-xs bg-slate-800 text-slate-300 px-3 py-1 rounded-xl font-medium">
+                                💳 {{ p.forma_pagamento }}
+                            </span>
+                        </div>
+                        <span class="text-xs bg-amber-500/20 text-amber-300 px-3 py-1 rounded-xl font-bold border border-amber-500/30 tracking-wider uppercase">
+                            {{ p.status }}
+                        </span>
+                    </div>
+
+                    <!-- Dados do Cliente -->
+                    <div class="space-y-1.5">
+                        <h3 class="text-sm sm:text-base font-extrabold text-slate-100 flex items-center gap-2">
+                            👤 <span class="text-white">{{ p.cliente_nome }}</span>
+                        </h3>
+                        {% if p.telefone %}
+                        <p class="text-xs text-slate-400 flex items-center gap-2">
+                            📞 <span>{{ p.telefone }}</span>
+                        </p>
+                        {% endif %}
+                        {% if p.endereco_entrega %}
+                        <p class="text-xs text-slate-400 flex items-center gap-2 leading-relaxed">
+                            📍 <span>{{ p.endereco_entrega }} {% if p.bairro %}- {{ p.bairro }}{% endif %}</span>
+                        </p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Rodapé do Card (Total) -->
+                    <div class="flex items-center justify-between pt-3 border-t border-slate-800/80">
+                        <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Valor Total:</span>
+                        <span class="text-sm sm:text-base text-emerald-400 font-black">
+                            R$ {{ "%.2f"|format(p.total) }}
+                        </span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% endif %}
     </div>
 
 </div>

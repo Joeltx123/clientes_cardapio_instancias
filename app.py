@@ -50,3 +50,6 @@ async def middleware_global(request: Request, call_next):
         if 'inspetor' in globals() and hasattr(inspetor, 'capturar_erro'):
             inspetor.capturar_erro(e)
         raise e
+
+from routers import cardapio_digital_delivery
+app.include_router(cardapio_digital_delivery.router)

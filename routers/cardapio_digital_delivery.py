@@ -3,7 +3,7 @@ from fastapi import APIRouter, Request, Form
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 
-router = APIRouter()
+router = APIRouter(prefix="/delivery")
 templates = Jinja2Templates(directory="templates")
 
 def get_conexao():
@@ -14,16 +14,41 @@ def get_conexao():
         pass
     return None
 
-@router.get("/cardapio/{tenant}", response_class=HTMLResponse)
-def cardapio_digital(request: Request, tenant: str, mesa: int = 1):
-    nome_estab = "Cardápio Digital"
+def garantir_tabela_delivery():
+    try:
+        conn = get_conexao()
+        if conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS pedidos_delivery (
+                    id SERIAL PRIMARY KEY,
+                    tenant TEXT,
+                    cliente_nome TEXT,
+                    cliente_telefone TEXT,
+                    endereco_entrega TEXT,
+                    bairro TEXT,
+                    itens TEXT,
+                    total NUMERIC(10,2),
+                    forma_pagamento TEXT,
+                    status TEXT DEFAULT 'Pendente'
+                );
+            """)
+            conn.commit()
+            cursor.close()
+            conn.close()
+    except Exception as e:
+        print(f"[ERRO TABELA DELIVERY] {e}")
+
+@router.get("/{tenant}", response_class=HTMLResponse)
+def cardapio_digital_delivery_page(request: Request, tenant: str):
+    nome_estab = "Cardápio Delivery"
     produtos = []
 
     try:
         conn = get_conexao()
         if conn:
             cursor = conn.cursor()
-            
+
             try:
                 cursor.execute("SELECT nome_restaurante FROM configuracao LIMIT 1;")
                 cfg = cursor.fetchone()
@@ -59,61 +84,61 @@ def cardapio_digital(request: Request, tenant: str, mesa: int = 1):
                             "id": p_id,
                             "nome": str(p_nome),
                             "descricao": str(p_desc),
-                            "preco": float(p_preco),  # Converte Decimal para float evitando o erro no JSON
+                            "preco": float(p_preco),
                             "categoria": str(p_cat),
                             "foto": str(p_foto)
                         })
             except Exception as e:
-                print(f"Erro ao buscar produtos do banco: {e}")
+                print(f"Erro ao buscar produtos do banco para delivery: {e}")
 
             cursor.close()
             conn.close()
     except Exception as e:
-        print(f"Erro de conexão com o banco: {e}")
+        print(f"Erro de conexão com o banco no delivery: {e}")
 
     return templates.TemplateResponse(
         request,
         "cardapio_digital.html",
         {
             "tenant": tenant,
-            "mesa": mesa,
+            "mesa": 0,
             "nome_estabelecimento": nome_estab,
             "produtos": produtos,
             "produtos_json": json.dumps(produtos, ensure_ascii=False),
-            "modo_delivery": False
+            "modo_delivery": True
         }
     )
 
-@router.post("/cardapio/{tenant}/fazer-pedido")
-def fazer_pedido_digital(tenant: str, mesa: int = Form(...), itens: str = Form(...), total: float = Form(...)):
+@router.post("/{tenant}/fazer-pedido-delivery")
+def fazer_pedido_delivery_oficial(
+    tenant: str, 
+    cliente_nome: str = Form(...), 
+    telefone: str = Form(""), 
+    endereco: str = Form(""), 
+    bairro: str = Form(""), 
+    forma_pagamento: str = Form("Dinheiro"), 
+    itens: str = Form(...), 
+    total: float = Form(...)
+):
+    garantir_tabela_delivery()
     try:
         conn = get_conexao()
         if conn:
             cursor = conn.cursor()
             cursor.execute(
-                "INSERT INTO pedidos (mesa, itens, total, status) VALUES (%s, %s, %s, 'Pendente')",
-                (mesa, itens, total)
+                """
+                INSERT INTO pedidos_delivery 
+                (tenant, cliente_nome, cliente_telefone, endereco_entrega, bairro, itens, total, forma_pagamento, status) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'Pendente')
+                """,
+                (tenant, cliente_nome, telefone, endereco, bairro, itens, total, forma_pagamento)
             )
             conn.commit()
             cursor.close()
             conn.close()
-    except Exception as e:
-        print(f"Erro pedido: {e}")
-    return JSONResponse({"status": "sucesso", "mensagem": "Pedido realizado!"})
-
-@router.post("/cardapio/{tenant}/fazer-pedido-delivery")
-def fazer_pedido_delivery(tenant: str, cliente: str = Form(...), itens: str = Form(...), total: float = Form(...)):
-    try:
-        conn = get_conexao()
-        if conn:
-            cursor = conn.cursor()
-            # Salvamos o nome do cliente no campo 'mesa' (ou onde preferir armazenar o identificador)
-            cursor.execute(
-                "INSERT INTO pedidos (mesa, itens, total, status) VALUES (%s, %s, %s, 'Pendente')",
-                (f"Delivery: {cliente}", itens, total)
-            )
-            conn.commit()
-            cursor.close()
-            conn.close()
+            return JSONResponse({"status": "sucesso", "mensagem": "Pedido de delivery realizado com sucesso!"})
     except Exception as e:
         print(f"Erro pedido delivery: {e}")
+        return JSONResponse({"status": "erro", "mensagem": str(e)}, status_code=500)
+    
+    return JSONResponse({"status": "erro", "mensagem": "Erro de conexão"}, status_code=500)

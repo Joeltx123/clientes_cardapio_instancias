@@ -173,7 +173,7 @@
             }
 
             // Verifica se está travado por pedido em produção
-            if (localStorage.getItem(lockKey) === 'true') {
+            if (false && localStorage.getItem(lockKey) === 'true') {
                 document.getElementById('lockScreen').classList.add('active');
                 return;
             }

@@ -1,6 +1,12 @@
 {% extends "base.html" %}
 
 {% block content %}
+<script>
+    // Limpa qualquer bloqueio de mesa ou pedido anterior para o delivery
+    localStorage.removeItem('pedido_em_andamento');
+    localStorage.removeItem('mesa_bloqueada');
+</script>
+
 <div style="width: 100%; max-width: 1280px; margin: 0 auto; padding: 24px 20px; box-sizing: border-box;">
 
     <!-- Cabeçalho do Cardápio Delivery -->

@@ -1,30 +1,32 @@
 {% extends "base.html" %}
-
 {% block content %}
 <div style="max-width: 1200px; margin: 0 auto; padding: 24px 16px;">
-
     <!-- Cabeçalho -->
-    <div style="display: flex; flex-direction: column; md-flex-direction: row; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 32px;">
+    <div style="display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 32px;">
         <div>
             <div style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 16px; background: rgba(16, 185, 129, 0.1); color: #10b981; font-size: 1.5rem; margin-bottom: 12px; border: 1px solid rgba(16, 185, 129, 0.2);">
                 💳
             </div>
-            <h1 style="font-size: 1.75rem; font-weight: 800; color: var(--text-main, #ffffff); letter-spacing: -0.025em; margin: 0;">Caixa e Pagamentos - {{ nome_estabelecimento }}</h1>
-            <p style="font-size: 0.875rem; color: var(--text-muted, #9ca3af); margin-top: 4px;">Gerencie comandas enviadas pelo sistema e realize o fechamento de mesas.</p>
-        </div>
-
-        <div style="padding: 12px 20px; border-radius: 14px; background: var(--bg-card, #111827); border: 1px solid var(--border-color, rgba(255,255,255,0.08)); font-weight: 700; font-size: 0.9rem;">
-            Mesas Ativas: <strong id="contadorMesas" style="color: var(--accent-color, #f59e0b);">0</strong> / {{ config.quantidade_mesas }}
+            <h1 style="font-size: 1.75rem; font-weight: 800; color: var(--text-main, #ffffff); letter-spacing: -0.025em; margin: 0;">Caixa e Pagamentos - Pendentes</h1>
+            <p style="font-size: 0.875rem; color: var(--text-muted, #9ca3af); margin-top: 4px;">Gerencie apenas os pedidos pendentes de mesas e delivery.</p>
         </div>
     </div>
 
-    <!-- Grid de Mesas com Consumo Ativo -->
-    <div id="listaMesasAtivas" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px;">
-        <div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted, #9ca3af); padding: 40px 0;">
-            <p>Carregando comandas ativas...</p>
+    <!-- Seção de Mesas Pendentes -->
+    <h2 style="font-size: 1.25rem; font-weight: 700; color: var(--text-main, #fff); margin-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;">Mesas Pendentes</h2>
+    <div id="listaMesasAtivas" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; margin-bottom: 32px;">
+        <div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted, #9ca3af); padding: 20px 0;">
+            <p>Carregando mesas pendentes...</p>
         </div>
     </div>
 
+    <!-- Seção de Delivery Pendente -->
+    <h2 style="font-size: 1.25rem; font-weight: 700; color: var(--text-main, #fff); margin-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;">Delivery Pendente</h2>
+    <div id="listaDeliveryAtivos" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px;">
+        <div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted, #9ca3af); padding: 20px 0;">
+            <p>Carregando entregas pendentes...</p>
+        </div>
+    </div>
 </div>
 
 <!-- Modal de Pagamento Flutuante -->
@@ -32,7 +34,7 @@
     <div style="width: 100%; max-width: 420px; border-radius: 24px; padding: 24px; background: var(--bg-card, #1a1512); border: 1px solid var(--border-color, rgba(255,255,255,0.15)); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);">
 
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1);">
-            <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--text-main, #ffffff); margin: 0;">Fechar Conta - Mesa <span id="modalMesaNum">--</span></h3>
+            <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--text-main, #ffffff); margin: 0;">Fechar Conta - <span id="modalTituloItem">--</span></h3>
             <button onclick="fecharModalPagamento()" style="width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.1); border: none; color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1rem;">✕</button>
         </div>
 
@@ -53,21 +55,8 @@
 
         <div id="secaoDinheiro" style="margin-bottom: 20px;">
             <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 6px; color: var(--text-muted, #9ca3af);">Valor Recebido (R$)</label>
-            <input type="number" id="valorRecebido" style="width: 100%; padding: 12px; border-radius: 12px; background: var(--input-bg, #1f2937); color: var(--input-text, #f9fafb); border: 1px solid var(--border-color, rgba(255,255,255,0.1); font-size: 0.9rem;" placeholder="0.00" oninput="calcularTroco()">
+            <input type="number" id="valorRecebido" style="width: 100%; padding: 12px; border-radius: 12px; background: var(--input-bg, #1f2937); color: var(--input-text, #f9fafb); border: 1px solid var(--border-color, rgba(255,255,255,0.1)); font-size: 0.9rem;" placeholder="0.00" oninput="calcularTroco()">
             <small style="display: block; margin-top: 6px; color: var(--text-muted, #9ca3af);">Troco: <strong id="valorTroco" style="color: #10b981;">R$ 0.00</strong></small>
-        </div>
-
-        <div id="secaoParcelamento" style="margin-bottom: 20px; display: none;">
-            <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 6px; color: var(--text-muted, #9ca3af);">Parcelas</label>
-            <select id="qtdParcelas" style="width: 100%; padding: 12px; border-radius: 12px; background: var(--input-bg, #1f2937); color: var(--input-text, #f9fafb); border: 1px solid var(--border-color, rgba(255,255,255,0.1)); font-size: 0.9rem;" onchange="calcularParcelas()">
-                <option value="1">1x</option>
-                <option value="2">2x</option>
-                <option value="3">3x</option>
-                <option value="4">4x</option>
-                <option value="5">5x</option>
-                <option value="6">6x</option>
-            </select>
-            <small style="display: block; margin-top: 6px; color: var(--text-muted, #9ca3af);" id="resumoParcelas"></small>
         </div>
 
         <div style="display: flex; gap: 10px;">
@@ -79,7 +68,7 @@
 </div>
 
 <script>
-let mesaSelecionada = null;
+let pedidoSelecionadoId = null;
 let valorSelecionado = 0;
 
 document.addEventListener("DOMContentLoaded", function() {
@@ -89,70 +78,80 @@ document.addEventListener("DOMContentLoaded", function() {
 
 async function carregarPagamentos() {
     try {
-        const response = await fetch('/admin/{{ tenant }}/api/pagamentos-ativos');
+        const response = await fetch('/admin/{{ slug }}/api/pagamentos-pendentes');
         const data = await response.json();
 
-        const container = document.getElementById('listaMesasAtivas');
-        const contador = document.getElementById('contadorMesas');
+        const containerMesas = document.getElementById('listaMesasAtivas');
+        const containerDelivery = document.getElementById('listaDeliveryAtivos');
 
-        if (!data.mesas_ativas || data.mesas_ativas.length === 0) {
-            container.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted, #9ca3af); padding: 40px 0;"><p>Nenhuma mesa com consumo ativo no momento.</p></div>';
-            contador.innerText = '0';
-            return;
+        // Filtrar apenas pendentes no front caso a API traga misturado
+        const mesasPendentes = (data.mesas || []).filter(m => m.status === 'Pendente');
+        const deliveryPendentes = (data.delivery || []).filter(d => d.status === 'Pendente');
+
+        // Renderizar Mesas
+        if (mesasPendentes.length === 0) {
+            containerMesas.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted, #9ca3af); padding: 20px 0;"><p>Nenhuma mesa pendente.</p></div>';
+        } else {
+            containerMesas.innerHTML = '';
+            mesasPendentes.forEach(m => {
+                const card = criarCardPedido(m.id, `Mesa #${m.mesa}`, m.total, m.status);
+                containerMesas.appendChild(card);
+            });
         }
 
-        contador.innerText = data.mesas_ativas.length;
-        container.innerHTML = '';
+        // Renderizar Delivery
+        if (deliveryPendentes.length === 0) {
+            containerDelivery.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted, #9ca3af); padding: 20px 0;"><p>Nenhum delivery pendente.</p></div>';
+        } else {
+            containerDelivery.innerHTML = '';
+            deliveryPendentes.forEach(d => {
+                const card = criarCardPedido(d.id, `Delivery #${d.id}`, d.total, d.status);
+                containerDelivery.appendChild(card);
+            });
+        }
 
-        data.mesas_ativas.forEach(m => {
-            let itensHtml = '';
-            if (m.itens && Array.isArray(m.itens)) {
-                m.itens.forEach(item => {
-                    itensHtml += `<li style="font-size: 0.8rem; color: var(--text-muted, #9ca3af); margin-bottom: 2px;">• ${item.quantidade || 1}x ${item.nome || 'Item'} ${item.obs ? '('+item.obs+')' : ''}</li>`;
-                });
-            }
-
-            const card = document.createElement('div');
-            card.style.cssText = `
-                padding: 16px;
-                border-radius: 16px;
-                border: 1px solid rgba(16, 185, 129, 0.3);
-                background: var(--bg-card, #111827);
-                display: flex;
-                flex-direction: column;
-                justify-content: space-between;
-                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
-            `;
-            card.innerHTML = `
-                <div>
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                        <h3 style="font-size: 1.1rem; font-weight: 800; color: var(--text-main, #fff); margin: 0;">Mesa #${m.mesa}</h3>
-                        <span style="padding: 2px 8px; border-radius: 6px; background: rgba(245, 158, 11, 0.15); color: #f59e0b; font-size: 0.7rem; font-weight: 700;">Ocupada</span>
-                    </div>
-                    <div style="max-height: 100px; overflow-y: auto; margin-bottom: 12px; padding-right: 4px;">
-                        <ul style="list-style: none; padding: 0; margin: 0;">${itensHtml || '<li style="font-size: 0.8rem; color: var(--text-muted);">Consumo geral</li>'}</ul>
-                    </div>
-                </div>
-                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 12px;">
-                    <span style="font-weight: 800; font-size: 1.1rem; color: #10b981;">R$ ${parseFloat(m.total).toFixed(2)}</span>
-                    <button onclick="abrirModalPagamento(${m.mesa}, ${m.total})" style="padding: 8px 12px; background: #10b981; color: #030712; font-weight: 700; font-size: 0.75rem; border-radius: 8px; border: none; cursor: pointer;">Receber / Fechar</button>
-                </div>
-            `;
-            container.appendChild(card);
-        });
     } catch (e) {
         console.error("Erro ao carregar pagamentos:", e);
     }
 }
 
-function abrirModalPagamento(mesa, total) {
-    mesaSelecionada = mesa;
+function criarCardPedido(id, titulo, total, status) {
+    const card = document.createElement('div');
+    card.style.cssText = `
+        padding: 16px;
+        border-radius: 16px;
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        background: var(--bg-card, #111827);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+    `;
+    card.innerHTML = `
+        <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h3 style="font-size: 1.1rem; font-weight: 800; color: var(--text-main, #fff); margin: 0;">${titulo}</h3>
+                <span style="padding: 2px 8px; border-radius: 6px; background: rgba(245, 158, 11, 0.15); color: #f59e0b; font-size: 0.7rem; font-weight: 700;">${status}</span>
+            </div>
+            <div style="margin-bottom: 12px; font-size: 0.85rem; color: var(--text-muted, #9ca3af);">
+                Pedido ID: #${id}
+            </div>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 12px;">
+            <span style="font-weight: 800; font-size: 1.1rem; color: #10b981;">R$ ${parseFloat(total).toFixed(2)}</span>
+            <button onclick="abrirModalPagamento(${id}, '${titulo}', ${total})" style="padding: 8px 12px; background: #10b981; color: #030712; font-weight: 700; font-size: 0.75rem; border-radius: 8px; border: none; cursor: pointer;">Receber / Fechar</button>
+        </div>
+    `;
+    return card;
+}
+
+function abrirModalPagamento(id, titulo, total) {
+    pedidoSelecionadoId = id;
     valorSelecionado = total;
-    document.getElementById('modalMesaNum').innerText = mesa;
+    document.getElementById('modalTituloItem').innerText = titulo;
     document.getElementById('modalTotalValor').innerText = `R$ ${total.toFixed(2)}`;
     document.getElementById('valorRecebido').value = '';
     document.getElementById('valorTroco').innerText = 'R$ 0.00';
-    mudarFormaPagamento();
     document.getElementById('modalPagamento').style.display = 'flex';
 }
 
@@ -162,18 +161,7 @@ function fecharModalPagamento() {
 
 function mudarFormaPagamento() {
     const forma = document.getElementById('formaPagamento').value;
-    const secaoDinheiro = document.getElementById('secaoDinheiro');
-    const secaoParcelamento = document.getElementById('secaoParcelamento');
-
-    secaoDinheiro.style.display = 'none';
-    secaoParcelamento.style.display = 'none';
-
-    if (forma === 'Dinheiro') {
-        secaoDinheiro.style.display = 'block';
-    } else if (forma === 'Cartão de Crédito') {
-        secaoParcelamento.style.display = 'block';
-        calcularParcelas();
-    }
+    document.getElementById('secaoDinheiro').style.display = (forma === 'Dinheiro') ? 'block' : 'none';
 }
 
 function calcularTroco() {
@@ -189,41 +177,29 @@ function calcularTroco() {
     }
 }
 
-function calcularParcelas() {
-    const qtd = parseInt(document.getElementById('qtdParcelas').value) || 1;
-    const valorParcela = valorSelecionado / qtd;
-    document.getElementById('resumoParcelas').innerText = `Valor por parcela: R$ ${valorParcela.toFixed(2)} (${qtd}x)`;
-}
-
 async function confirmarPagamento() {
     const forma = document.getElementById('formaPagamento').value;
-    let detalhes = forma;
-
     if (forma === 'Dinheiro') {
         const rec = parseFloat(document.getElementById('valorRecebido').value) || 0;
         if (rec < valorSelecionado) {
             alert('Valor recebido é menor que o total!');
             return;
         }
-        detalhes = `Dinheiro (Recebido: R$ ${rec.toFixed(2)} | Troco: R$ ${(rec - valorSelecionado).toFixed(2)})`;
-    } else if (forma === 'Cartão de Crédito') {
-        const qtd = document.getElementById('qtdParcelas').value;
-        detalhes = `Cartão de Crédito (${qtd}x)`;
     }
 
     try {
-        const res = await fetch(`/admin/{{ tenant }}/api/processar-pagamento`, {
+        const res = await fetch(`/admin/{{ slug }}/api/pagamento-concluir/${pedidoSelecionadoId}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ mesa: mesaSelecionada, total: valorSelecionado, forma_pagamento: detalhes })
+            body: JSON.stringify({ forma_pagamento: forma })
         });
         const data = await res.json();
         if (res.ok) {
             fecharModalPagamento();
-            alert(data.mensagem || 'Mesa liberada com sucesso!');
+            alert('Pagamento concluído com sucesso!');
             carregarPagamentos();
         } else {
-            alert(data.erro || 'Erro ao processar.');
+            alert(data.detalhe || 'Erro ao processar.');
         }
     } catch (e) {
         alert('Erro de conexão.');
