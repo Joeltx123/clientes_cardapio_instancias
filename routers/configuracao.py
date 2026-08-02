@@ -1,7 +1,7 @@
 import re
 import unicodedata
 from fastapi import APIRouter, Request, HTTPException
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from database import get_db
@@ -26,7 +26,7 @@ def config_get(slug: str, request: Request):
     try:
         cursor.execute("SELECT * FROM configuracao LIMIT 1")
         config = cursor.fetchone()
-        
+
         cursor.execute("SELECT * FROM estabelecimentos WHERE slug = %s", (slug,))
         estabelecimento = cursor.fetchone()
     except Exception:
@@ -49,31 +49,24 @@ async def api_config_salvar(slug: str, dados: ConfigUpdateModel):
     cursor = db.cursor()
     try:
         novo_slug = gerar_slug(dados.nome_restaurante)
-
+        
         cursor.execute(
             "UPDATE estabelecimentos SET nome = %s, slug = %s, quantidade_mesas = %s WHERE slug = %s",
             (dados.nome_restaurante, novo_slug, dados.quantidade_mesas, slug)
         )
-
+        
         cursor.execute("DELETE FROM configuracao")
         cursor.execute(
             "INSERT INTO configuracao (nome_restaurante, quantidade_mesas) VALUES (%s, %s)",
             (dados.nome_restaurante, dados.quantidade_mesas)
         )
-
+        
         db.commit()
-        cursor.close()
-        db.close()
-
-        return JSONResponse({
-            "status": "sucesso",
-            "mensagem": "Configurações atualizadas com sucesso via JSON!",
-            "novo_slug": novo_slug
-        })
+        return {"status": "sucesso", "mensagem": "Configurações salvas com sucesso!", "novo_slug": novo_slug}
     except Exception as e:
         if db:
             db.rollback()
-        return JSONResponse({
-            "status": "erro",
-            "detalhe": str(e)
-        }, status_code=500)
+        return JSONResponse(status_code=500, content={"status": "erro", "detalhe": str(e)})
+    finally:
+        cursor.close()
+        db.close()
