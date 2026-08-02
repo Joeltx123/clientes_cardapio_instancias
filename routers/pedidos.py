@@ -1,22 +1,22 @@
 import json
-from fastapi import APIRouter, Request, Form, HTTPException
+from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from database import get_db
 
-router = APIRouter()
+router = APIRouter(prefix="/admin")
 templates = Jinja2Templates(directory="templates")
 
-@router.get("/admin/{tenant}/pedidos", response_class=HTMLResponse)
+@router.get("/{tenant}/pedidos", response_class=HTMLResponse)
 def listar_pedidos(request: Request, tenant: str):
     pedidos_por_mesa = {}
     config_data = {"quantidade_mesas": 10, "nome": "Cardápio"}
     tenant_ativo = tenant
-    
+
     try:
         conn = get_db()
         cursor = conn.cursor()
-        
+
         # Busca nome e quantidade de mesas direto da tabela configuracao
         cursor.execute("SELECT * FROM configuracao LIMIT 1;")
         res_config = cursor.fetchone()
@@ -28,21 +28,21 @@ def listar_pedidos(request: Request, tenant: str):
                 config_data["nome"] = row_dict["nome"]
             if "slug" in row_dict and row_dict["slug"]:
                 tenant_ativo = row_dict["slug"]
-        
+
         # Busca todos os pedidos pendentes
         cursor.execute(
-            "SELECT id, mesa, itens, total, forma_pagamento, status, criado_em FROM pedidos WHERE status != 'Finalizado' ORDER BY id DESC;"
+            "SELECT id, mesa, itens, total, forma_pagamento, status, criado_em FROM pedidos WHERE status NOT IN ('pago', 'Finalizado') ORDER BY id DESC;"
         )
         rows = cursor.fetchall()
-        
+
         for r in rows:
             row_dict_p = dict(r) if hasattr(r, "keys") else {
-                "id": r[0], "mesa": r[1], "itens": r[2], "total": r[3], 
+                "id": r[0], "mesa": r[1], "itens": r[2], "total": r[3],
                 "forma_pagamento": r[4], "status": r[5], "criado_em": r[6]
             }
-            
+
             num_mesa = int(row_dict_p["mesa"])
-            
+
             try:
                 itens_parsed = json.loads(row_dict_p["itens"])
             except Exception:
@@ -64,7 +64,7 @@ def listar_pedidos(request: Request, tenant: str):
                     "quantidade": 1,
                     "obs": ""
                 })
-            
+
         cursor.close()
         conn.close()
     except Exception as e:
@@ -81,8 +81,8 @@ def listar_pedidos(request: Request, tenant: str):
         }
     )
 
-@router.post("/admin/{tenant}/pedidos/liberar/{mesa}")
-async def liberar_mesa(tenant: str, mesa: int):
+@router.post("/{tenant}/api/pedidos/liberar/{mesa}")
+async def api_liberar_mesa(tenant: str, mesa: int):
     try:
         conn = get_db()
         cursor = conn.cursor()
@@ -93,6 +93,6 @@ async def liberar_mesa(tenant: str, mesa: int):
         conn.commit()
         cursor.close()
         conn.close()
-        return JSONResponse({"status": "sucesso"})
+        return JSONResponse({"status": "sucesso", "mensagem": f"Mesa {mesa} liberada com sucesso!"})
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return JSONResponse({"status": "erro", "detalhe": str(e)}, status_code=500)

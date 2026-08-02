@@ -53,6 +53,25 @@
             </select>
         </div>
 
+        <!-- Seção de Parcelas (Aparece apenas se Cartão de Crédito for selecionado) -->
+        <div id="secaoParcelas" style="margin-bottom: 16px; display: none;">
+            <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 6px; color: var(--text-muted, #9ca3af);">Quantidade de Parcelas</label>
+            <select id="qtdParcelas" style="width: 100%; padding: 12px; border-radius: 12px; background: var(--input-bg, #1f2937); color: var(--input-text, #f9fafb); border: 1px solid var(--border-color, rgba(255,255,255,0.1)); font-size: 0.9rem;">
+                <option value="1">1x (À vista)</option>
+                <option value="2">2x</option>
+                <option value="3">3x</option>
+                <option value="4">4x</option>
+                <option value="5">5x</option>
+                <option value="6">6x</option>
+                <option value="7">7x</option>
+                <option value="8">8x</option>
+                <option value="9">9x</option>
+                <option value="10">10x</option>
+                <option value="11">11x</option>
+                <option value="12">12x</option>
+            </select>
+        </div>
+
         <div id="secaoDinheiro" style="margin-bottom: 20px;">
             <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 6px; color: var(--text-muted, #9ca3af);">Valor Recebido (R$)</label>
             <input type="number" id="valorRecebido" style="width: 100%; padding: 12px; border-radius: 12px; background: var(--input-bg, #1f2937); color: var(--input-text, #f9fafb); border: 1px solid var(--border-color, rgba(255,255,255,0.1)); font-size: 0.9rem;" placeholder="0.00" oninput="calcularTroco()">
@@ -70,6 +89,7 @@
 <script>
 let pedidoSelecionadoId = null;
 let valorSelecionado = 0;
+let tipoPedidoAtual = 'mesa';
 
 document.addEventListener("DOMContentLoaded", function() {
     carregarPagamentos();
@@ -84,28 +104,25 @@ async function carregarPagamentos() {
         const containerMesas = document.getElementById('listaMesasAtivas');
         const containerDelivery = document.getElementById('listaDeliveryAtivos');
 
-        // Filtrar apenas pendentes no front caso a API traga misturado
         const mesasPendentes = (data.mesas || []).filter(m => m.status === 'Pendente');
         const deliveryPendentes = (data.delivery || []).filter(d => d.status === 'Pendente');
 
-        // Renderizar Mesas
         if (mesasPendentes.length === 0) {
             containerMesas.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted, #9ca3af); padding: 20px 0;"><p>Nenhuma mesa pendente.</p></div>';
         } else {
             containerMesas.innerHTML = '';
             mesasPendentes.forEach(m => {
-                const card = criarCardPedido(m.id, `Mesa #${m.mesa}`, m.total, m.status);
+                const card = criarCardPedido(m.id, `Mesa #${m.mesa}`, m.total, m.status, 'mesa');
                 containerMesas.appendChild(card);
             });
         }
 
-        // Renderizar Delivery
         if (deliveryPendentes.length === 0) {
             containerDelivery.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted, #9ca3af); padding: 20px 0;"><p>Nenhum delivery pendente.</p></div>';
         } else {
             containerDelivery.innerHTML = '';
             deliveryPendentes.forEach(d => {
-                const card = criarCardPedido(d.id, `Delivery #${d.id}`, d.total, d.status);
+                const card = criarCardPedido(d.id, `Delivery #${d.id} - ${d.cliente_nome}`, d.total, d.status, 'delivery');
                 containerDelivery.appendChild(card);
             });
         }
@@ -115,7 +132,7 @@ async function carregarPagamentos() {
     }
 }
 
-function criarCardPedido(id, titulo, total, status) {
+function criarCardPedido(id, titulo, total, status, tipo) {
     const card = document.createElement('div');
     card.style.cssText = `
         padding: 16px;
@@ -139,19 +156,22 @@ function criarCardPedido(id, titulo, total, status) {
         </div>
         <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 12px;">
             <span style="font-weight: 800; font-size: 1.1rem; color: #10b981;">R$ ${parseFloat(total).toFixed(2)}</span>
-            <button onclick="abrirModalPagamento(${id}, '${titulo}', ${total})" style="padding: 8px 12px; background: #10b981; color: #030712; font-weight: 700; font-size: 0.75rem; border-radius: 8px; border: none; cursor: pointer;">Receber / Fechar</button>
+            <button onclick="abrirModalPagamento(${id}, '${titulo}', ${total}, '${tipo}')" style="padding: 8px 12px; background: #10b981; color: #030712; font-weight: 700; font-size: 0.75rem; border-radius: 8px; border: none; cursor: pointer;">Receber / Fechar</button>
         </div>
     `;
     return card;
 }
 
-function abrirModalPagamento(id, titulo, total) {
+function abrirModalPagamento(id, titulo, total, tipo) {
     pedidoSelecionadoId = id;
     valorSelecionado = total;
+    tipoPedidoAtual = tipo;
     document.getElementById('modalTituloItem').innerText = titulo;
     document.getElementById('modalTotalValor').innerText = `R$ ${total.toFixed(2)}`;
     document.getElementById('valorRecebido').value = '';
     document.getElementById('valorTroco').innerText = 'R$ 0.00';
+    document.getElementById('formaPagamento').value = 'Dinheiro';
+    mudarFormaPagamento();
     document.getElementById('modalPagamento').style.display = 'flex';
 }
 
@@ -162,6 +182,7 @@ function fecharModalPagamento() {
 function mudarFormaPagamento() {
     const forma = document.getElementById('formaPagamento').value;
     document.getElementById('secaoDinheiro').style.display = (forma === 'Dinheiro') ? 'block' : 'none';
+    document.getElementById('secaoParcelas').style.display = (forma === 'Cartão de Crédito') ? 'block' : 'none';
 }
 
 function calcularTroco() {
@@ -179,6 +200,9 @@ function calcularTroco() {
 
 async function confirmarPagamento() {
     const forma = document.getElementById('formaPagamento').value;
+    const parcelas = (forma === 'Cartão de Crédito') ? parseInt(document.getElementById('qtdParcelas').value) || 1 : 1;
+    const trocoVal = (forma === 'Dinheiro') ? (parseFloat(document.getElementById('valorRecebido').value) || 0) - valorSelecionado : 0;
+
     if (forma === 'Dinheiro') {
         const rec = parseFloat(document.getElementById('valorRecebido').value) || 0;
         if (rec < valorSelecionado) {
@@ -191,7 +215,12 @@ async function confirmarPagamento() {
         const res = await fetch(`/admin/{{ slug }}/api/pagamento-concluir/${pedidoSelecionadoId}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ forma_pagamento: forma })
+            body: JSON.stringify({ 
+                forma_pagamento: forma,
+                parcelas: parcelas,
+                troco: trocoVal > 0 ? trocoVal : 0.0,
+                tipo: tipoPedidoAtual
+            })
         });
         const data = await res.json();
         if (res.ok) {

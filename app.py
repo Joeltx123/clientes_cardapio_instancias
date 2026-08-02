@@ -53,3 +53,7 @@ async def middleware_global(request: Request, call_next):
 
 from routers import cardapio_digital_delivery
 app.include_router(cardapio_digital_delivery.router)
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("app:app", host="0.0.0.0", port=5003, reload=True)
