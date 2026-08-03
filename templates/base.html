@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cardápio Pro - Sidebar Fechada no F5</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-800 min-h-screen flex flex-col">
+
+    <!-- ================= TELA DE LOGIN ================= -->
+    <div id="tela-login" class="fixed inset-0 bg-gray-900 flex items-center justify-center z-50 p-4">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md">
+            <h2 class="text-3xl font-bold text-center mb-6 text-gray-800">Cardápio Pro</h2>
+            <form onsubmit="realizarLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-base font-semibold text-gray-700 mb-1">Usuário Administrador</label>
+                    <input type="text" id="login-usuario" required class="w-full mt-1 p-3.5 border border-gray-300 rounded-xl text-base focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-base font-semibold text-gray-700 mb-1">Senha</label>
+                    <input type="password" id="login-senha" required class="w-full mt-1 p-3.5 border border-gray-300 rounded-xl text-base focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <button type="submit" class="w-full bg-blue-600 text-white py-3.5 rounded-xl text-lg font-bold hover:bg-blue-700 transition shadow-lg mt-2">Entrar no Sistema</button>
+            </form>
+            <p id="login-erro" class="text-red-500 text-sm text-center mt-4 hidden font-medium">Usuário ou senha inválidos.</p>
+        </div>
+    </div>
+
+    <!-- ================= PAINEL PRINCIPAL ================= -->
+    <div id="painel-sistema" class="hidden flex h-screen overflow-hidden w-full">
+        
+        <!-- OVERLAY UNIVERSAL -->
+        <div id="sidebar-overlay" onclick="alternarSidebar()" class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden"></div>
+
+        <!-- SIDEBAR RETRÁTIL (COMEÇA FECHADA) -->
+        <aside id="sidebar" class="w-80 bg-white border-r border-gray-200 flex flex-col justify-between transition-transform duration-300 fixed inset-y-0 left-0 z-40 transform -translate-x-full shadow-2xl">
+            <div>
+                <!-- Topo da Sidebar -->
+                <div class="p-6 border-b border-gray-100 flex items-center justify-between">
+                    <span class="font-bold text-gray-900 text-xl flex items-center gap-3">🍔 Cardápio Pro</span>
+                    <button onclick="alternarSidebar()" class="text-gray-500 hover:text-gray-900 text-2xl font-bold p-1">✕</button>
+                </div>
+                
+                <!-- Links dos Menus -->
+                <nav class="p-4 space-y-2 overflow-y-auto max-h-[calc(100vh-160px)]">
+                    <button onclick="ativarMenu('configuracao')" class="w-full flex items-center gap-4 px-5 py-3.5 rounded-xl text-base font-semibold text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition">⚙️ Configuração</button>
+                    <button onclick="ativarMenu('cardapio')" class="w-full flex items-center gap-4 px-5 py-3.5 rounded-xl text-base font-semibold text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition">📖 Cardápio</button>
+                    <button onclick="ativarMenu('pedidos')" class="w-full flex items-center gap-4 px-5 py-3.5 rounded-xl text-base font-semibold text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition">📦 Pedidos</button>
+                    <button onclick="ativarMenu('delivery')" class="w-full flex items-center gap-4 px-5 py-3.5 rounded-xl text-base font-semibold text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition">🚀 Delivery</button>
+                    <button onclick="ativarMenu('pagamento')" class="w-full flex items-center gap-4 px-5 py-3.5 rounded-xl text-base font-semibold text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition">💳 Pagamento</button>
+                    <button onclick="ativarMenu('analise')" class="w-full flex items-center gap-4 px-5 py-3.5 rounded-xl text-base font-semibold text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition">📊 Análise</button>
+                    <button onclick="ativarMenu('qrcode')" class="w-full flex items-center gap-4 px-5 py-3.5 rounded-xl text-base font-semibold text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition">📱 QR Code</button>
+                    <button onclick="ativarMenu('backup')" class="w-full flex items-center gap-4 px-5 py-3.5 rounded-xl text-base font-semibold text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition">💾 Backup</button>
+                </nav>
+            </div>
+            
+            <!-- Rodapé da Sidebar -->
+            <div class="p-5 border-t border-gray-100 bg-gray-50">
+                <button onclick="realizarLogout()" class="w-full flex items-center justify-center gap-3 text-red-600 hover:bg-red-100 p-3 rounded-xl text-base font-bold transition">🚪 Sair do Sistema</button>
+            </div>
+        </aside>
+
+        <!-- ÁREA DE CONTEÚDO PRINCIPAL -->
+        <div class="flex-1 flex flex-col h-screen overflow-y-auto w-full">
+            
+            <!-- Header Superior -->
+            <header class="bg-white shadow-sm py-5 px-6 sm:px-8 flex justify-between items-center sticky top-0 z-20">
+                <div class="flex items-center gap-4">
+                    <button onclick="alternarSidebar()" class="text-gray-800 hover:text-blue-600 focus:outline-none text-3xl p-1">
+                        ☰
+                    </button>
+                    <h1 class="text-xl sm:text-2xl font-bold text-gray-900" id="titulo-topo">Painel Administrativo</h1>
+                </div>
+                <span class="text-sm bg-green-100 text-green-800 font-bold px-4 py-2 rounded-full shadow-sm">● Admin Online</span>
+            </header>
+
+            <!-- Seções dos Menus -->
+            <main class="flex-1 p-6 sm:p-10 max-w-7xl w-full mx-auto">
+
+                <!-- 1. Menu: Configuração -->
+                <section id="menu-configuracao" class="menu-isolado hidden bg-white shadow-lg rounded-2xl p-8 border border-gray-100">
+                    <h2 class="text-2xl font-bold mb-3 text-gray-900">⚙️ Configuração</h2>
+                    <p class="text-gray-600 mb-6 text-base">Gerenciamento geral do sistema via JSON.</p>
+                    <button onclick="requisicaoJson('configuracao')" class="bg-blue-600 text-white px-6 py-3 rounded-xl text-base font-semibold hover:bg-blue-700 transition shadow">Carregar Dados (JSON)</button>
+                    <pre id="dados-configuracao" class="bg-gray-50 p-6 rounded-xl mt-6 text-sm text-gray-800 overflow-x-auto border border-gray-200"></pre>
+                </section>
+
+                <!-- 2. Menu: Cardápio -->
+                <section id="menu-cardapio" class="menu-isolado hidden bg-white shadow-lg rounded-2xl p-8 border border-gray-100">
+                    <h2 class="text-2xl font-bold mb-3 text-gray-900">📖 Cardápio</h2>
+                    <p class="text-gray-600 mb-6 text-base">Gestão de itens e categorias via JSON.</p>
+                    <button onclick="requisicaoJson('cardapio')" class="bg-blue-600 text-white px-6 py-3 rounded-xl text-base font-semibold hover:bg-blue-700 transition shadow">Carregar Dados (JSON)</button>
+                    <pre id="dados-cardapio" class="bg-gray-50 p-6 rounded-xl mt-6 text-sm text-gray-800 overflow-x-auto border border-gray-200"></pre>
+                </section>
+
+                <!-- 3. Menu: Pedidos -->
+                <section id="menu-pedidos" class="menu-isolado hidden bg-white shadow-lg rounded-2xl p-8 border border-gray-100">
+                    <h2 class="text-2xl font-bold mb-3 text-gray-900">📦 Pedidos</h2>
+                    <p class="text-gray-600 mb-6 text-base">Acompanhamento de pedidos em tempo real via JSON.</p>
+                    <button onclick="requisicaoJson('pedidos')" class="bg-blue-600 text-white px-6 py-3 rounded-xl text-base font-semibold hover:bg-blue-700 transition shadow">Carregar Dados (JSON)</button>
+                    <pre id="dados-pedidos" class="bg-gray-50 p-6 rounded-xl mt-6 text-sm text-gray-800 overflow-x-auto border border-gray-200"></pre>
+                </section>
+
+                <!-- 4. Menu: Delivery -->
+                <section id="menu-delivery" class="menu-isolado hidden bg-white shadow-lg rounded-2xl p-8 border border-gray-100">
+                    <h2 class="text-2xl font-bold mb-3 text-gray-900">🚀 Delivery</h2>
+                    <p class="text-gray-600 mb-6 text-base">Controle de entregas e taxas via JSON.</p>
+                    <button onclick="requisicaoJson('delivery')" class="bg-blue-600 text-white px-6 py-3 rounded-xl text-base font-semibold hover:bg-blue-700 transition shadow">Carregar Dados (JSON)</button>
+                    <pre id="dados-delivery" class="bg-gray-50 p-6 rounded-xl mt-6 text-sm text-gray-800 overflow-x-auto border border-gray-200"></pre>
+                </section>
+
+                <!-- 5. Menu: Pagamento -->
+                <section id="menu-pagamento" class="menu-isolado hidden bg-white shadow-lg rounded-2xl p-8 border border-gray-100">
+                    <h2 class="text-2xl font-bold mb-3 text-gray-900">💳 Pagamento</h2>
+                    <p class="text-gray-600 mb-6 text-base">Configuração de meios de pagamento via JSON.</p>
+                    <button onclick="requisicaoJson('pagamento')" class="bg-blue-600 text-white px-6 py-3 rounded-xl text-base font-semibold hover:bg-blue-700 transition shadow">Carregar Dados (JSON)</button>
+                    <pre id="dados-pagamento" class="bg-gray-50 p-6 rounded-xl mt-6 text-sm text-gray-800 overflow-x-auto border border-gray-200"></pre>
+                </section>
+
+                <!-- 6. Menu: Análise -->
+                <section id="menu-analise" class="menu-isolado hidden bg-white shadow-lg rounded-2xl p-8 border border-gray-100">
+                    <h2 class="text-2xl font-bold mb-3 text-gray-900">📊 Análise</h2>
+                    <p class="text-gray-600 mb-6 text-base">Relatórios e estatísticas do negócio via JSON.</p>
+                    <button onclick="requisicaoJson('analise')" class="bg-blue-600 text-white px-6 py-3 rounded-xl text-base font-semibold hover:bg-blue-700 transition shadow">Carregar Dados (JSON)</button>
+                    <pre id="dados-analise" class="bg-gray-50 p-6 rounded-xl mt-6 text-sm text-gray-800 overflow-x-auto border border-gray-200"></pre>
+                </section>
+
+                <!-- 7. Menu: QR Code -->
+                <section id="menu-qrcode" class="menu-isolado hidden bg-white shadow-lg rounded-2xl p-8 border border-gray-100">
+                    <h2 class="text-2xl font-bold mb-3 text-gray-900">📱 QR Code</h2>
+                    <p class="text-gray-600 mb-6 text-base">Geração de QR Codes das mesas via JSON.</p>
+                    <button onclick="requisicaoJson('qrcode')" class="bg-blue-600 text-white px-6 py-3 rounded-xl text-base font-semibold hover:bg-blue-700 transition shadow">Carregar Dados (JSON)</button>
+                    <pre id="dados-qrcode" class="bg-gray-50 p-6 rounded-xl mt-6 text-sm text-gray-800 overflow-x-auto border border-gray-200"></pre>
+                </section>
+
+                <!-- 8. Menu: Backup -->
+                <section id="menu-backup" class="menu-isolado hidden bg-white shadow-lg rounded-2xl p-8 border border-gray-100">
+                    <h2 class="text-2xl font-bold mb-3 text-gray-900">💾 Backup</h2>
+                    <p class="text-gray-600 mb-6 text-base">Gerenciamento de cópias de segurança via JSON.</p>
+                    <button onclick="requisicaoJson('backup')" class="bg-blue-600 text-white px-6 py-3 rounded-xl text-base font-semibold hover:bg-blue-700 transition shadow">Carregar Dados (JSON)</button>
+                    <pre id="dados-backup" class="bg-gray-50 p-6 rounded-xl mt-6 text-sm text-gray-800 overflow-x-auto border border-gray-200"></pre>
+                </section>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- Script de Controle -->
+    <script>
+        window.addEventListener("DOMContentLoaded", () => {
+            if (sessionStorage.getItem("logado") === "true") {
+                document.getElementById("tela-login").classList.add("hidden");
+                document.getElementById("painel-sistema").classList.remove("hidden");
+                ativarMenu("configuracao");
+                // Garante que ao carregar/atualizar, a sidebar inicia fechada
+                fecharSidebarInicial();
+            }
+        });
+
+        function realizarLogin(event) {
+            event.preventDefault();
+            const user = document.getElementById("login-usuario").value;
+            const pass = document.getElementById("login-senha").value;
+            
+            if(user === "admin" && pass === "admin") {
+                sessionStorage.setItem("logado", "true");
+                document.getElementById("tela-login").classList.add("hidden");
+                document.getElementById("painel-sistema").classList.remove("hidden");
+                ativarMenu("configuracao");
+                fecharSidebarInicial();
+            } else {
+                document.getElementById("login-erro").classList.remove("hidden");
+            }
+        }
+
+        function realizarLogout() {
+            sessionStorage.removeItem("logado");
+            document.getElementById("painel-sistema").classList.add("hidden");
+            document.getElementById("tela-login").classList.remove("hidden");
+        }
+
+        function alternarSidebar() {
+            const sidebar = document.getElementById("sidebar");
+            const overlay = document.getElementById("sidebar-overlay");
+            sidebar.classList.toggle("-translate-x-full");
+            overlay.classList.toggle("hidden");
+        }
+
+        function fecharSidebarInicial() {
+            const sidebar = document.getElementById("sidebar");
+            const overlay = document.getElementById("sidebar-overlay");
+            if (!sidebar.classList.contains("-translate-x-full")) {
+                sidebar.classList.add("-translate-x-full");
+            }
+            if (!overlay.classList.contains("hidden")) {
+                overlay.classList.add("hidden");
+            }
+        }
+
+        function ativarMenu(nomeMenu) {
+            document.querySelectorAll(".menu-isolado").forEach(el => el.classList.add("hidden"));
+            const selecionado = document.getElementById("menu-" + nomeMenu);
+            if (selecionado) selecionado.classList.remove("hidden");
+            
+            // Fecha a sidebar ao clicar em um menu
+            fecharSidebarInicial();
+        }
+
+        async function requisicaoJson(modulo) {
+            try {
+                const resposta = await fetch("/api/" + modulo);
+                const dados = await resposta.json();
+                document.getElementById("dados-" + modulo).innerText = JSON.stringify(dados, null, 2);
+            } catch (erro) {
+                document.getElementById("dados-" + modulo).innerText = "Erro na comunicação JSON: " + erro;
+            }
+        }
+    </script>
+</body>
+</html>
