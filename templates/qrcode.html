@@ -1,7 +1,22 @@
 {% extends "base.html" %}
 {% block conteudo %}
-<div class="bg-white rounded-xl shadow-sm border p-6">
-    <h2 class="text-2xl font-bold text-gray-800 mb-4 capitalize">Módulo de qrcode</h2>
-    <p class="text-gray-600">Gerencie as informações de qrcode por esta seção.</p>
+<div class="max-w-7xl mx-auto space-y-6">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-800">QR Code das Mesas</h2>
+            <p class="text-sm text-gray-500">Gere códigos QR para os clientes escanearem e acessarem o cardápio da mesa.</p>
+        </div>
+        <button onclick="alert('Funcionalidade de gerar QR Code em lote em desenvolvimento')" class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition shadow-sm flex items-center gap-2">
+            <i data-lucide="plus" class="w-4 h-4"></i> Gerar Novo QR Code
+        </button>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center text-gray-400 space-y-3">
+        <i data-lucide="qr-code" class="w-16 h-16 mx-auto text-gray-300"></i>
+        <p class="text-sm">Nenhum QR Code gerado no momento. Cadastre as mesas para gerar os códigos.</p>
+    </div>
 </div>
+<script>
+    lucide.createIcons();
+</script>
 {% endblock %}

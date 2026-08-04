@@ -1,40 +1,53 @@
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import json
+import pandas as pd
+from sisyten import json_core
 
 def consultar_pedidos_e_mesas():
     try:
         conn = psycopg2.connect(dbname="cardapio_pro", user="postgres", password="", host="localhost", port="5432")
-        cur = conn.cursor(cursor_factory=RealDictCursor)
         
-        cur.execute("SELECT nome, mesas FROM administracao ORDER BY id DESC LIMIT 1;")
-        admin = cur.fetchone()
+        # Consultas usando pandas para alto desempenho na leitura do banco
+        admin_df = pd.read_sql("SELECT nome, mesas FROM administracao ORDER BY id DESC LIMIT 1;", conn)
+        pedidos_df = pd.read_sql("SELECT * FROM pedidos_mesas ORDER BY id DESC;", conn)
         
-        cur.execute("SELECT * FROM pedidos_mesas ORDER BY id DESC;")
-        pedidos = cur.fetchall()
-        
-        cur.close()
         conn.close()
-        
-        nome_est = admin["nome"] if admin and admin["nome"] else "Joel"
-        qtd_mesas = int(admin["mesas"]) if admin and admin["mesas"] else 5
+
+        # Extração de configurações com pandas/fallback
+        nome_est = "Joel"
+        qtd_mesas = 5
+        if not admin_df.empty:
+            nome_est = admin_df.iloc[0].get("nome") or "Joel"
+            qtd_mesas = int(admin_df.iloc[0].get("mesas") or 5)
 
         lista_mesas = []
         for i in range(1, qtd_mesas + 1):
-            pedido_mesa = next((dict(p) for p in pedidos if p.get("mesa") == i or p.get("numero_mesa") == i), None)
+            # Filtra pedidos da mesa atual usando pandas se houver registros
+            pedido_mesa = None
+            if not pedidos_df.empty:
+                match = pedidos_df[
+                    (pedidos_df.get("mesa") == i) | (pedidos_df.get("numero_mesa") == i)
+                ]
+                if not match.empty:
+                    pedido_mesa = match.iloc[0].to_dict()
+
             lista_mesas.append({
                 "mesa": i,
                 "status": pedido_mesa.get("status", "livre") if pedido_mesa else "livre",
-                "criado_em": pedido_mesa.get("criado_em", "") if pedido_mesa else ""
+                "criado_em": str(pedido_mesa.get("criado_em", "")) if pedido_mesa and pd.notna(pedido_mesa.get("criado_em")) else ""
             })
 
-        return {
+        resultado = {
             "status": "sucesso",
             "nome_estabelecimento": nome_est,
             "slug": "estabelecimento",
             "mesas": lista_mesas
         }
+        return resultado
+
     except Exception as e:
+        print(f"[AVISO] Erro ao consultar banco em pedidos.py: {e}. Usando dados padrão.")
         return {
             "status": "sucesso",
             "nome_estabelecimento": "Joel",
@@ -43,13 +56,15 @@ def consultar_pedidos_e_mesas():
         }
 
 def processar_requisicao(requisicao_json):
-    # O app.py injeta o retorno dentro da chave "dados" no template, 
-    # mas o HTML lê diretamente como `dados.get(...)` onde `dados` é o dicionário principal passado pelo app.py.
-    # Para garantir compatibilidade com o app.py, retornamos um dicionário que atenda a ambos.
     res = consultar_pedidos_e_mesas()
-    return json.dumps({
-        "status": res["status"],
-        "nome_estabelecimento": res["nome_estabelecimento"],
-        "slug": res["slug"],
-        "mesas": res["mesas"]
-    })
+    
+    # Utiliza a conversão padronizada do json_core para garantir logs e segurança
+    df_res = pd.DataFrame([res])
+    json_str = json_core.dataframe_para_json(df_res)
+    
+    # Retorna o formato esperado pelo app.py convertido via json_core
+    dados_finais = json_core.json_para_dataframe(json_str).iloc[0].to_dict()
+    # Como as 'mesas' precisam retornar como lista, garantimos o formato estruturado
+    dados_finais["mesas"] = res["mesas"]
+    
+    return json.dumps(dados_finais, ensure_ascii=False)

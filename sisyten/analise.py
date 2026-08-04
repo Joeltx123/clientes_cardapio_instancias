@@ -1,136 +1,48 @@
-import json
-import psycopg2
 import pandas as pd
+from sisyten import json_core
+from datetime import datetime
 
-DB_CONFIG = {
-    "dbname": "cardapio_pro",
-    "user": "postgres",
-    "password": "",
-    "host": "localhost",
-    "port": "5432"
-}
-
-def get_db_connection():
-    return psycopg2.connect(**DB_CONFIG)
-
-def gerar_analise_e_relatorio(dados):
-    slug = dados.get("slug")
-    filtro_tipo = dados.get("filtro_tipo", "geral")
-    data_inicio = dados.get("data_inicio")
-    data_fim = dados.get("data_fim")
-
-    if not slug:
-        return {"status": "erro", "mensagem": "O campo 'slug' é obrigatório para gerar a análise."}
-
-    try:
-        conn = get_db_connection()
-        
-        # Lê a tabela transacoes diretamente para um DataFrame do pandas
-        query = """
-            SELECT id, slug, tipo_pedido, referencia_id, nome_cliente,
-                   forma_pagamento, detalhes_pagamento, valor_total, criado_em
-            FROM transacoes
-            WHERE slug = %s
-        """
-        params = [slug]
-
-        if data_inicio and data_fim:
-            query += " AND criado_em::date BETWEEN %s AND %s"
-            params.extend([data_inicio, data_fim])
-
-        query += " ORDER BY criado_em DESC;"
-
-        df = pd.read_sql(query, conn, params=params)
-        
-        # Fecha a conexão com o banco
-        conn.close()
-
-        if df.empty:
-            relatorio_conteudo = {
-                "slug": slug,
-                "filtro_aplicado": filtro_tipo,
-                "periodo": {"data_inicio": data_inicio, "data_fim": data_fim},
-                "cards_rendimento": {"total_geral": 0.0, "pix": 0.0, "cartao": 0.0, "dinheiro": 0.0},
-                "extrato_detalhado": [],
-            }
-            return {"status": "sucesso", "mensagem": "Nenhuma transação encontrada.", "dados": relatorio_conteudo}
-
-        # Tratamento de valores com pandas
-        df["valor_total"] = pd.to_numeric(df["valor_total"], errors="fillna").fillna(0.0)
-        df["forma_pagamento"] = df["forma_pagamento"].fillna("").str.lower()
-
-        total_geral = float(df["valor_total"].sum())
-        
-        # Agrupamentos rápidos usando pandas
-        rendimento_pix = float(df[df["forma_pagamento"].str.contains("pix", na=False)]["valor_total"].sum())
-        rendimento_cartao = float(df[df["forma_pagamento"].str.contains("cartao|débito|crédito", na=False, regex=True)]["valor_total"].sum())
-        rendimento_dinheiro = float(df[df["forma_pagamento"].str.contains("dinheiro", na=False)]["valor_total"].sum())
-
-        # Monta o extrato detalhado formatado
-        extrato_organizado = []
-        for _, t in df.iterrows():
-            extrato_organizado.append({
-                "id_transacao": int(t["id"]),
-                "tipo_pedido": str(t["tipo_pedido"]),
-                "referencia": str(t["referencia_id"]),
-                "nome_cliente": str(t["nome_cliente"] or "-"),
-                "forma_pagamento": str(t["forma_pagamento"]),
-                "detalhes": str(t["detalhes_pagamento"] or ""),
-                "valor": float(t["valor_total"]),
-                "data_hora": str(t["criado_em"])
-            })
-
-        relatorio_conteudo = {
-            "slug": slug,
-            "filtro_aplicado": filtro_tipo,
-            "periodo": {"data_inicio": data_inicio, "data_fim": data_fim},
-            "cards_rendimento": {
-                "total_geral": round(total_geral, 2),
-                "pix": round(rendimento_pix, 2),
-                "cartao": round(rendimento_cartao, 2),
-                "dinheiro": round(rendimento_dinheiro, 2)
-            },
-            "extrato_detalhado": extrato_organizado
-        }
-
-        # Salva o relatório consolidado na base de dados
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute("""
-            INSERT INTO relatorio (slug, tipo_filtro, periodo_referencia, dados_consolidados)
-            VALUES (%s, %s, %s, %s)
-            RETURNING id, criado_em;
-        """, (slug, filtro_tipo, f"{data_inicio or 'inicio'} ate {data_fim or 'hoje'}", json.dumps(relatorio_conteudo)))
-
-        salvo = cur.fetchone()
-        conn.commit()
-        cur.close()
-        conn.close()
-
-        relatorio_conteudo["relatorio_id"] = salvo[0]
-        relatorio_conteudo["gerado_em"] = str(salvo[1])
-
+def gerar_relatorio_vendas(caminho_vendas="dados/vendas.json", filtro_periodo="todos"):
+    """Gera análises estatísticas de vendas utilizando pandas com suporte a filtros."""
+    vendas = json_core.ler_json_seguro(caminho_vendas, [])
+    df = json_core.json_para_dataframe(vendas)
+    
+    if df.empty or "valor" not in df.columns:
         return {
-            "status": "sucesso",
-            "mensagem": "Análise gerada com pandas e salva com sucesso.",
-            "dados": relatorio_conteudo
+            "total_vendas": 0, "faturamento_total": 0.0, "ticket_medio": 0.0,
+            "pix": 0.0, "cartao": 0.0, "dinheiro": 0.0, "transacoes": []
         }
 
-    except Exception as e:
-        return {"status": "erro", "mensagem": f"Erro ao gerar análise com pandas: {str(e)}"}
+    # Converte coluna de data se existir
+    if "data" in df.columns:
+        df["data_dt"] = pd.to_datetime(df["data"], errors="coerce")
+        hoje = datetime.now().date()
+        
+        if filtro_periodo == "hoje":
+            df = df[df["data_dt"].dt.date == hoje]
+        elif filtro_periodo == "semana":
+            inicio_semana = hoje - pd.Timedelta(days=7)
+            df = df[df["data_dt"].dt.date >= inicio_semana]
+        elif filtro_periodo == "mes":
+            df = df[(df["data_dt"].dt.month == hoje.month) & (df["data_dt"].dt.year == hoje.year)]
 
-def processar_requisicao(json_requisicao):
-    try:
-        req = json.loads(json_requisicao) if isinstance(json_requisicao, str) else json_requisicao
-        acao = req.get("acao")
-        dados = req.get("dados", {})
+    total_vendas = len(df)
+    faturamento_total = float(df["valor"].sum()) if not df.empty else 0.0
+    ticket_medio = faturamento_total / total_vendas if total_vendas > 0 else 0.0
 
-        if acao in ["gerar_analise", "consultar_relatorio"]:
-            resposta = gerar_analise_e_relatorio(dados)
-        else:
-            resposta = {"status": "erro", "mensagem": f"Ação '{acao}' não reconhecida no menu Análise."}
+    # Totais por forma de pagamento se a coluna existir
+    pix = float(df[df["forma"].str.lower() == "pix"]["valor"].sum()) if "forma" in df.columns and not df.empty else 0.0
+    cartao = float(df[df["forma"].str.lower().str.contains("cartao|cartão", na=False)]["valor"].sum()) if "forma" in df.columns and not df.empty else 0.0
+    dinheiro = float(df[df["forma"].str.lower() == "dinheiro"]["valor"].sum()) if "forma" in df.columns and not df.empty else 0.0
 
-        return json.dumps(resposta, ensure_ascii=False)
-
-    except Exception as e:
-        return json.dumps({"status": "erro", "mensagem": f"Erro no processamento JSON do menu Análise: {str(e)}"}, ensure_ascii=False)
+    analise = {
+        "total_vendas": total_vendas,
+        "faturamento_total": round(faturamento_total, 2),
+        "ticket_medio": round(ticket_medio, 2),
+        "pix": round(pix, 2),
+        "cartao": round(cartao, 2),
+        "dinheiro": round(dinheiro, 2),
+        "transacoes": df.to_dict(orient="records") if not df.empty else []
+    }
+    
+    return analise

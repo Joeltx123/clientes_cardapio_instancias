@@ -18,7 +18,7 @@
         <!-- QR Code Geral -->
         <div class="bg-indigo-50 border border-indigo-100 rounded-2xl p-6 mb-8 flex flex-col md:flex-row items-center gap-6">
             <div class="bg-white p-3 rounded-xl shadow-sm border">
-                <img src="{{ dados.get('qrcode_geral_imagem_url') }}" alt="QR Code Geral" class="w-36 h-36 object-contain">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={{ dados.get('link_geral', 'http://0.0.0.0:8000/cardapio') }}" alt="QR Code Geral" class="w-40 h-40 mx-auto">
             </div>
             <div>
                 <span class="bg-indigo-100 text-indigo-800 text-xs font-semibold px-2.5 py-1 rounded-full">Link Geral do Estabelecimento</span>
@@ -36,7 +36,7 @@
                 <div class="border rounded-2xl p-5 flex flex-col items-center text-center bg-white shadow-sm hover:shadow-md transition-shadow">
                     <span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full mb-3">Mesa {{ m.mesa }}</span>
                     <div class="bg-gray-50 p-2 rounded-xl border mb-3 w-full flex justify-center">
-                        <img src="{{ m.qrcode_imagem_url }}" alt="QR Code Mesa {{ m.mesa }}" class="w-32 h-32 object-contain">
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={{ m.link_acesso }}" alt="QR Code Mesa {{ m.mesa }}" class="w-40 h-40 mx-auto">
                     </div>
                     <p class="text-xs text-gray-500 mb-4 truncate w-full" title="{{ m.link_acesso }}">{{ m.link_acesso }}</p>
                     <div class="w-full flex gap-2">
