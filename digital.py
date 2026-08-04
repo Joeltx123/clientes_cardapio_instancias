@@ -9,7 +9,7 @@ templates = Jinja2Templates(directory="templates")
 
 @router.get("/mesa/cardapio", response_class=HTMLResponse)
 def ver_cardapio(request: Request, mesa: int = None):
-    if not mesa:
+    if mesa is None:
         raise HTTPException(status_code=400, detail="Mesa não informada. Por favor, escaneie o QR Code da mesa.")
     
     try:

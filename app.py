@@ -141,3 +141,157 @@ async def rota_configuracao_post(request: Request):
         "slug": "estabelecimento"
     }
     return templates.TemplateResponse(request, "configuracao.html", {"dados": dados, "mensagem": mensagem})
+
+
+def rota_qrcode(request: Request):
+    import psycopg2, psycopg2.extras
+    try:
+        conn = psycopg2.connect(dbname="cardapio_pro", user="postgres")
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute("SELECT * FROM administracao LIMIT 1;")
+        admin = cur.fetchone()
+        cur.close()
+        conn.close()
+        
+        total_mesas = admin["mesas"] if admin and "mesas" in admin else 5
+        nome_estab = admin["nome"] if admin and "nome" in admin else "Estabelecimento"
+    except Exception:
+        total_mesas = 5
+        nome_estab = "Estabelecimento"
+        
+    return templates.TemplateResponse(request, "qrcode.html", {
+        "nome_estabelecimento": nome_estab,
+        "mesas": range(1, total_mesas + 1)
+    })
+
+
+def rota_qrcode(request: Request):
+    import psycopg2, psycopg2.extras
+    try:
+        conn = psycopg2.connect(dbname="cardapio_pro", user="postgres")
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute("SELECT * FROM administracao LIMIT 1;")
+        admin = cur.fetchone()
+        cur.close()
+        conn.close()
+        
+        total_mesas = admin["mesas"] if admin and "mesas" in admin else 5
+        nome_estab = admin["nome"] if admin and "nome" in admin else "Estabelecimento"
+    except Exception:
+        total_mesas = 5
+        nome_estab = "Estabelecimento"
+        
+    dados = {
+        "nome_estabelecimento": nome_estab,
+        "mesas": range(1, total_mesas + 1)
+    }
+    return templates.TemplateResponse(request, "qrcode.html", {"request": request, "dados": dados})
+
+
+def rota_qrcode(request: Request):
+    import psycopg2, psycopg2.extras
+    try:
+        conn = psycopg2.connect(dbname="cardapio_pro", user="postgres")
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute("SELECT * FROM administracao LIMIT 1;")
+        admin = cur.fetchone()
+        cur.close()
+        conn.close()
+        
+        total_mesas = admin["mesas"] if admin and "mesas" in admin else 5
+        nome_estab = admin["nome"] if admin and "nome" in admin else "Estabelecimento"
+    except Exception:
+        total_mesas = 5
+        nome_estab = "Estabelecimento"
+        
+    base_url = str(request.base_url).rstrip("/")
+    link_geral = f"{base_url}/cardapio"
+    
+    lista_mesas = []
+    for i in range(1, total_mesas + 1):
+        lista_mesas.append({
+            "mesa": i,
+            "link_acesso": f"{base_url}/cardapio?mesa={i}"
+        })
+        
+    dados = {
+        "status": "sucesso",
+        "nome_estabelecimento": nome_estab,
+        "link_geral": link_geral,
+        "mesas": lista_mesas
+    }
+    return templates.TemplateResponse(request, "qrcode.html", {"request": request, "dados": dados})
+
+
+def rota_qrcode(request: Request):
+    from sisyten.qr_code import consultar_qr_code
+    resultado = consultar_qr_code()
+    # Ajusta o host dinamicamente baseado na requisição real
+    base_url = str(request.base_url).rstrip("/")
+    
+    dados = resultado.get("dados", {})
+    # Atualiza para usar o host atual do cliente
+    dados["link_geral"] = f"{base_url}/cardapio"
+    for m in dados.get("mesas", []):
+        num = m["mesa"]
+        m["link_acesso"] = f"{base_url}/mesa/{num}"
+        import urllib.parse
+        q = urllib.parse.quote(m["link_acesso"])
+        m["qrcode_imagem_url"] = f"https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={q}"
+
+    return templates.TemplateResponse(request, "qrcode.html", {"request": request, "dados": dados})
+
+
+def rota_qrcode(request: Request):
+    from sisyten.qr_code import consultar_qr_code
+    resultado = consultar_qr_code()
+    base_url = str(request.base_url).rstrip("/")
+    
+    dados = resultado.get("dados", {})
+    dados["link_geral"] = f"{base_url}/cardapio"
+    for m in dados.get("mesas", []):
+        num = m["mesa"]
+        # Usa o formato com query string /cardapio?mesa=X que já é suportado pelo app.py
+        m["link_acesso"] = f"{base_url}/cardapio?mesa={num}"
+        import urllib.parse
+        q = urllib.parse.quote(m["link_acesso"])
+        m["qrcode_imagem_url"] = f"https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={q}"
+
+    return templates.TemplateResponse(request, "qrcode.html", {"request": request, "dados": dados})
+
+
+def rota_qrcode(request: Request):
+    from sisyten.qr_code import consultar_qr_code
+    resultado = consultar_qr_code()
+    base_url = str(request.base_url).rstrip("/")
+    
+    dados = resultado.get("dados", {})
+    dados["link_geral"] = f"{base_url}/mesa/cardapio"
+    for m in dados.get("mesas", []):
+        num = m["mesa"]
+        # Aponta para a rota correta do cardápio digital do digital.py
+        m["link_acesso"] = f"{base_url}/mesa/cardapio?mesa={num}"
+        import urllib.parse
+        q = urllib.parse.quote(m["link_acesso"])
+        m["qrcode_imagem_url"] = f"https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={q}"
+
+    return templates.TemplateResponse(request, "qrcode.html", {"request": request, "dados": dados})
+
+
+@app.get("/qrcode", response_class=HTMLResponse)
+def rota_qrcode(request: Request):
+    from sisyten.qr_code import consultar_qr_code
+    resultado = consultar_qr_code()
+    base_url = str(request.base_url).rstrip("/")
+    
+    dados = resultado.get("dados", {})
+    # Link geral agora aponta para mesa 0 (delivery/geral)
+    dados["link_geral"] = f"{base_url}/mesa/cardapio?mesa=0"
+    for m in dados.get("mesas", []):
+        num = m["mesa"]
+        m["link_acesso"] = f"{base_url}/mesa/cardapio?mesa={num}"
+        import urllib.parse
+        q = urllib.parse.quote(m["link_acesso"])
+        m["qrcode_imagem_url"] = f"https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={q}"
+
+    return templates.TemplateResponse(request, "qrcode.html", {"request": request, "dados": dados})
