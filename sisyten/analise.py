@@ -1,23 +1,40 @@
-import pandas as pd
-from sisyten import json_core
+import os
+import psycopg2
+from psycopg2.extras import RealDictCursor
 from datetime import datetime
+import pandas as pd
 
-def gerar_relatorio_vendas(caminho_vendas="dados/vendas.json", filtro_periodo="todos"):
-    """Gera análises estatísticas de vendas utilizando pandas com suporte a filtros."""
-    vendas = json_core.ler_json_seguro(caminho_vendas, [])
-    df = json_core.json_para_dataframe(vendas)
-    
+def get_db_connection():
+    return psycopg2.connect(
+        dbname="cardapio_pro",
+        user=os.getenv("DB_USER", "postgres"),
+        password=os.getenv("DB_PASSWORD", ""),
+        host=os.getenv("DB_HOST", "localhost"),
+        port=os.getenv("DB_PORT", "5432")
+    )
+
+def obter_dados(filtro_periodo="todos"):
+    """Consulta as transações no PostgreSQL e gera o relatório estatístico."""
+    conn = get_db_connection()
+    try:
+        query = "SELECT id, valor_total as valor, forma_pagamento as forma, criado_em as data, nome_cliente as cliente FROM transacoes;"
+        df = pd.read_sql(query, conn)
+    except Exception as e:
+        print(f"Erro ao consultar transações: {e}")
+        df = pd.DataFrame()
+    finally:
+        conn.close()
+
     if df.empty or "valor" not in df.columns:
         return {
             "total_vendas": 0, "faturamento_total": 0.0, "ticket_medio": 0.0,
             "pix": 0.0, "cartao": 0.0, "dinheiro": 0.0, "transacoes": []
         }
 
-    # Converte coluna de data se existir
     if "data" in df.columns:
         df["data_dt"] = pd.to_datetime(df["data"], errors="coerce")
         hoje = datetime.now().date()
-        
+
         if filtro_periodo == "hoje":
             df = df[df["data_dt"].dt.date == hoje]
         elif filtro_periodo == "semana":
@@ -30,10 +47,10 @@ def gerar_relatorio_vendas(caminho_vendas="dados/vendas.json", filtro_periodo="t
     faturamento_total = float(df["valor"].sum()) if not df.empty else 0.0
     ticket_medio = faturamento_total / total_vendas if total_vendas > 0 else 0.0
 
-    # Totais por forma de pagamento se a coluna existir
-    pix = float(df[df["forma"].str.lower() == "pix"]["valor"].sum()) if "forma" in df.columns and not df.empty else 0.0
-    cartao = float(df[df["forma"].str.lower().str.contains("cartao|cartão", na=False)]["valor"].sum()) if "forma" in df.columns and not df.empty else 0.0
-    dinheiro = float(df[df["forma"].str.lower() == "dinheiro"]["valor"].sum()) if "forma" in df.columns and not df.empty else 0.0
+    forma_serie = df["forma"].astype(str).str.lower() if "forma" in df.columns else pd.Series()
+    pix = float(df[forma_serie == "pix"]["valor"].sum()) if not df.empty else 0.0
+    cartao = float(df[forma_serie.str.contains("cartao|cartão", na=False)]["valor"].sum()) if not df.empty else 0.0
+    dinheiro = float(df[forma_serie == "dinheiro"]["valor"].sum()) if not df.empty else 0.0
 
     analise = {
         "total_vendas": total_vendas,
@@ -44,5 +61,5 @@ def gerar_relatorio_vendas(caminho_vendas="dados/vendas.json", filtro_periodo="t
         "dinheiro": round(dinheiro, 2),
         "transacoes": df.to_dict(orient="records") if not df.empty else []
     }
-    
+
     return analise
