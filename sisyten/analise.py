@@ -1,6 +1,6 @@
 import json
 import psycopg2
-from psycopg2.extras import RealDictCursor
+import pandas as pd
 
 DB_CONFIG = {
     "dbname": "cardapio_pro",
@@ -14,17 +14,6 @@ def get_db_connection():
     return psycopg2.connect(**DB_CONFIG)
 
 def gerar_analise_e_relatorio(dados):
-    """
-    Lê a tabela 'transacoes' (que contém mesas e delivery), calcula os rendimentos
-    por forma de pagamento (Pix, Cartão, Dinheiro), organiza o extrato por dia, mês e ano,
-    permite filtro por período (data_inicio e data_fim) e salva o resultado reorganizado na tabela 'relatorio'.
-    Payload: {
-      "slug": "nome-do-estabelecimento",
-      "filtro_tipo": "periodo", # 'geral', 'diario', 'mensal', 'anual', 'periodo'
-      "data_inicio": "2026-01-01", # Opcional para filtro de a até b
-      "data_fim": "2026-12-31"     # Opcional para filtro de a até b
-    }
-    """
     slug = dados.get("slug")
     filtro_tipo = dados.get("filtro_tipo", "geral")
     data_inicio = dados.get("data_inicio")
@@ -35,13 +24,12 @@ def gerar_analise_e_relatorio(dados):
 
     try:
         conn = get_db_connection()
-        cur = conn.cursor(cursor_factory=RealDictCursor)
-
-        # Monta a query com filtros opcionais de data (de x a y)
+        
+        # Lê a tabela transacoes diretamente para um DataFrame do pandas
         query = """
-            SELECT id, slug, tipo_pedido, referencia_id, nome_cliente, 
-                   forma_pagamento, detalhes_pagamento, valor_total, criado_em 
-            FROM transacoes 
+            SELECT id, slug, tipo_pedido, referencia_id, nome_cliente,
+                   forma_pagamento, detalhes_pagamento, valor_total, criado_em
+            FROM transacoes
             WHERE slug = %s
         """
         params = [slug]
@@ -52,43 +40,46 @@ def gerar_analise_e_relatorio(dados):
 
         query += " ORDER BY criado_em DESC;"
 
-        cur.execute(query, tuple(params))
-        transacoes = cur.fetchall()
+        df = pd.read_sql(query, conn, params=params)
+        
+        # Fecha a conexão com o banco
+        conn.close()
 
-        # Estruturas para consolidação
-        total_geral = 0.0
-        rendimento_pix = 0.0
-        rendimento_cartao = 0.0
-        rendimento_dinheiro = 0.0
+        if df.empty:
+            relatorio_conteudo = {
+                "slug": slug,
+                "filtro_aplicado": filtro_tipo,
+                "periodo": {"data_inicio": data_inicio, "data_fim": data_fim},
+                "cards_rendimento": {"total_geral": 0.0, "pix": 0.0, "cartao": 0.0, "dinheiro": 0.0},
+                "extrato_detalhado": [],
+            }
+            return {"status": "sucesso", "mensagem": "Nenhuma transação encontrada.", "dados": relatorio_conteudo}
 
+        # Tratamento de valores com pandas
+        df["valor_total"] = pd.to_numeric(df["valor_total"], errors="fillna").fillna(0.0)
+        df["forma_pagamento"] = df["forma_pagamento"].fillna("").str.lower()
+
+        total_geral = float(df["valor_total"].sum())
+        
+        # Agrupamentos rápidos usando pandas
+        rendimento_pix = float(df[df["forma_pagamento"].str.contains("pix", na=False)]["valor_total"].sum())
+        rendimento_cartao = float(df[df["forma_pagamento"].str.contains("cartao|débito|crédito", na=False, regex=True)]["valor_total"].sum())
+        rendimento_dinheiro = float(df[df["forma_pagamento"].str.contains("dinheiro", na=False)]["valor_total"].sum())
+
+        # Monta o extrato detalhado formatado
         extrato_organizado = []
-
-        for t in transacoes:
-            valor = float(t["valor_total"] or 0.0)
-            total_geral += valor
-            forma = (t["forma_pagamento"] or "").lower()
-
-            if "pix" in forma:
-                rendimento_pix += valor
-            elif "cartao" in forma or "débito" in forma or "crédito" in forma:
-                rendimento_cartao += valor
-            elif "dinheiro" in forma:
-                rendimento_dinheiro += valor
-
-            criado_em_str = str(t["criado_em"])
-            
+        for _, t in df.iterrows():
             extrato_organizado.append({
-                "id_transacao": t["id"],
-                "tipo_pedido": t["tipo_pedido"], # 'mesa' ou 'delivery'
-                "referencia": t["referencia_id"],
-                "nome_cliente": t["nome_cliente"],
-                "forma_pagamento": t["forma_pagamento"],
-                "detalhes": t["detalhes_pagamento"],
-                "valor": valor,
-                "data_hora": criado_em_str
+                "id_transacao": int(t["id"]),
+                "tipo_pedido": str(t["tipo_pedido"]),
+                "referencia": str(t["referencia_id"]),
+                "nome_cliente": str(t["nome_cliente"] or "-"),
+                "forma_pagamento": str(t["forma_pagamento"]),
+                "detalhes": str(t["detalhes_pagamento"] or ""),
+                "valor": float(t["valor_total"]),
+                "data_hora": str(t["criado_em"])
             })
 
-        # Monta o pacote consolidado para os cards e relatório
         relatorio_conteudo = {
             "slug": slug,
             "filtro_aplicado": filtro_tipo,
@@ -99,13 +90,12 @@ def gerar_analise_e_relatorio(dados):
                 "cartao": round(rendimento_cartao, 2),
                 "dinheiro": round(rendimento_dinheiro, 2)
             },
-            "extrato_detalhado": extrato_organizado,
-            "acoes_interface": {
-                "botao_imprimir": "imprimir_relatorio_extrato"
-            }
+            "extrato_detalhado": extrato_organizado
         }
 
-        # Salva todas as informações reorganizadas na tabela 'relatorio'
+        # Salva o relatório consolidado na base de dados
+        conn = get_db_connection()
+        cur = conn.cursor()
         cur.execute("""
             INSERT INTO relatorio (slug, tipo_filtro, periodo_referencia, dados_consolidados)
             VALUES (%s, %s, %s, %s)
@@ -117,20 +107,19 @@ def gerar_analise_e_relatorio(dados):
         cur.close()
         conn.close()
 
-        relatorio_conteudo["relatorio_id"] = salvo["id"]
-        relatorio_conteudo["gerado_em"] = str(salvo["criado_em"])
+        relatorio_conteudo["relatorio_id"] = salvo[0]
+        relatorio_conteudo["gerado_em"] = str(salvo[1])
 
         return {
             "status": "sucesso",
-            "mensagem": "Análise gerada com sucesso e salva na tabela relatório.",
+            "mensagem": "Análise gerada com pandas e salva com sucesso.",
             "dados": relatorio_conteudo
         }
 
     except Exception as e:
-        return {"status": "erro", "mensagem": f"Erro ao gerar análise e relatório: {str(e)}"}
+        return {"status": "erro", "mensagem": f"Erro ao gerar análise com pandas: {str(e)}"}
 
 def processar_requisicao(json_requisicao):
-    """Ponto de entrada do menu Análise que recebe e devolve estritamente JSON."""
     try:
         req = json.loads(json_requisicao) if isinstance(json_requisicao, str) else json_requisicao
         acao = req.get("acao")

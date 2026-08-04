@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block conteudo %}
+<div class="bg-white rounded-xl shadow-sm border p-6 mb-6">
+    <div class="flex justify-between items-center mb-4">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-800 capitalize">Painel de Delivery</h2>
+            <p class="text-gray-600">Gerencie os pedidos recebidos para entrega em tempo real.</p>
+        </div>
+        <button onclick="carregarPedidos()" class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-medium transition flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Atualizar
+        </button>
+    </div>
+</div>
+
+<div id="lista-pedidos" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div class="col-span-full text-center py-10 text-gray-500">
+        Carregando pedidos delivery...
+    </div>
+</div>
+
+<script>
+async function carregarPedidos() {
+    const container = document.getElementById("lista-pedidos");
+    try {
+        const response = await fetch("/api/delivery", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ acao: "listar", dados: { slug: "estabelecimento" } })
+        });
+        const resultado = await response.json();
+        
+        if (resultado.status === "sucesso") {
+            const pedidos = resultado.pedidos;
+            if (pedidos.length === 0) {
+                container.innerHTML = `<div class="col-span-full bg-white rounded-xl shadow-sm border p-8 text-center text-gray-500">Nenhum pedido delivery pendente no momento.</div>`;
+                return;
+            }
+            
+            container.innerHTML = pedidos.map(p => {
+                let itensHtml = "";
+                try {
+                    const dadosObj = typeof p.dados_pedido === "string" ? JSON.parse(p.dados_pedido) : p.dados_pedido;
+                    const itens = dadosObj.itens || [];
+                    itensHtml = itens.map(i => `<div class="flex justify-between text-sm py-1 border-b border-gray-100"><span>${i.quantidade}x ${i.nome}</span> <span class="font-medium">R$ ${Number(i.preco * i.quantidade).toFixed(2)}</span></div>`).join("");
+                } catch(e) {
+                    itensHtml = "<div class="text-sm text-gray-500">Detalhes indisponíveis</div>";
+                }
+                
+                return `
+                    <div class="bg-white rounded-xl shadow-sm border p-5 flex flex-col justify-between">
+                        <div>
+                            <div class="flex justify-between items-start mb-3">
+                                <span class="bg-orange-100 text-orange-800 text-xs font-semibold px-2.5 py-0.5 rounded">Pedido #${p.id}</span>
+                                <span class="text-xs text-gray-400">${p.criado_em}</span>
+                            </div>
+                            <h3 class="font-bold text-lg text-gray-800 mb-1">${p.nome_cliente}</h3>
+                            <div class="mb-4">
+                                <p class="text-xs font-semibold text-gray-500 mb-1">ITENS DO PEDIDO:</p>
+                                <div class="bg-gray-50 rounded-lg p-2">${itensHtml}</div>
+                            </div>
+                        </div>
+                        <div class="flex gap-2 pt-3 border-t">
+                            <button onclick="processarPedido(${p.id}, 'liberar_errado')" class="flex-1 bg-red-50 hover:bg-red-100 text-red-600 text-sm font-medium py-2 rounded-lg transition">Cancelar</button>
+                            <button onclick="processarPedido(${p.id}, 'enviar_motoboy')" class="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm font-medium py-2 rounded-lg transition">Enviar Motoboy</button>
+                        </div>
+                    </div>
+                `;
+            }).join("");
+        } else {
+            container.innerHTML = `<div class="col-span-full bg-red-50 text-red-600 p-4 rounded-xl text-center">Erro ao carregar pedidos.</div>`;
+        }
+    } catch (err) {
+        container.innerHTML = `<div class="col-span-full bg-red-50 text-red-600 p-4 rounded-xl text-center">Erro de conexão com o servidor.</div>`;
+    }
+}
+
+async function processarPedido(pedidoId, acaoTipo) {
+    if (!confirm(acaoTipo === 'liberar_errado' ? 'Deseja realmente cancelar este pedido?' : 'Confirmar envio para o motoboy?')) return;
+    
+    try {
+        const response = await fetch("/api/delivery", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                acao: "processar_pedido",
+                dados: { pedido_id: pedidoId, acao_tipo: acaoTipo, pagamento: { forma: "dinheiro" }, valor_total: 0.00 }
+            })
+        });
+        const res = await response.json();
+        alert(res.mensagem);
+        carregarPedidos();
+    } catch (e) {
+        alert("Erro ao processar ação do pedido.");
+    }
+}
+
+document.addEventListener("DOMContentLoaded", carregarPedidos);
+</script>
+{% endblock %}

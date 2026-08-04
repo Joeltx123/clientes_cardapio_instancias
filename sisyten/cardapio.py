@@ -1,3 +1,19 @@
+
+def obter_nome_atual():
+    try:
+        import psycopg2
+        conn = psycopg2.connect(dbname="cardapio_pro", user="postgres", password="", host="localhost", port="5432")
+        cur = conn.cursor()
+        cur.execute("SELECT nome FROM administracao ORDER BY id DESC LIMIT 1;")
+        res = cur.fetchone()
+        cur.close()
+        conn.close()
+        if res and res[0]:
+            return res[0]
+    except Exception:
+        pass
+    return "estabelecimento"
+
 import json
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -18,7 +34,7 @@ def cadastrar_produto(dados):
     Cadastra um produto separado por categoria, com descrição, preço, foto (URL ou local)
     e visibilidade inicial padrão (visível).
     Payload: {
-      "slug": "...", 
+      "nome": "...", 
       "categoria": "Porções", 
       "nome": "Batata Frita", 
       "descricao": "Porção grande com cheddar e bacon", 
@@ -26,17 +42,17 @@ def cadastrar_produto(dados):
       "foto_url": "https://exemplo.com/foto.jpg"
     }
     """
-    slug = dados.get("slug")
+    nome = dados.get("nome")
     categoria = dados.get("categoria")
     nome = dados.get("nome")
     descricao = dados.get("descricao", "")
     preco = dados.get("preco")
     foto_url = dados.get("foto_url", "")
 
-    if not slug or not categoria or not nome or preco is None:
+    if not nome or not categoria or not nome or preco is None:
         return {
             "status": "erro",
-            "mensagem": "Campos obrigatórios ausentes: 'slug', 'categoria', 'nome' e 'preco' são necessários."
+            "mensagem": "Campos obrigatórios ausentes: 'nome', 'categoria', 'nome' e 'preco' são necessários."
         }
 
     try:
@@ -44,10 +60,10 @@ def cadastrar_produto(dados):
         cur = conn.cursor(cursor_factory=RealDictCursor)
 
         cur.execute("""
-            INSERT INTO cardapio (slug, categoria, nome, descricao, preco, visivel, arquivado, foto_url)
+            INSERT INTO cardapio (nome, categoria, nome, descricao, preco, visivel, arquivado, foto_url)
             VALUES (%s, %s, %s, %s, %s, TRUE, FALSE, %s)
-            RETURNING id, slug, categoria, nome, descricao, preco, visivel, arquivado, foto_url;
-        """, (slug, categoria, nome, descricao, preco, foto_url))
+            RETURNING id, nome, categoria, nome, descricao, preco, visivel, arquivado, foto_url;
+        """, (nome, categoria, nome, descricao, preco, foto_url))
 
         novo_produto = cur.fetchone()
         conn.commit()
@@ -66,23 +82,41 @@ def cadastrar_produto(dados):
 
 def consultar_cardapio(dados):
     """
-    Lista os produtos ativos (não arquivados) separados por categoria e visibilidade.
-    Payload: {"slug": "..."}
+    Lista os produtos ativos (não arquivados) filtrando pelo nome da tabela administracao.
     """
-    slug = dados.get("slug")
-    if not slug:
-        return {"status": "erro", "mensagem": "O campo 'slug' é obrigatório."}
+    nome = dados.get("nome")
+    nome = obter_nome_atual()
+    if not nome:
+        try:
+            conn = get_db_connection()
+            cur = conn.cursor(cursor_factory=RealDictCursor)
+            cur.execute("SELECT nome FROM administracao ORDER BY id DESC LIMIT 1;")
+            res_adm = cur.fetchone()
+            if res_adm and res_adm.get("nome"):
+                nome = res_adm["nome"]
+            cur.close()
+            conn.close()
+        except Exception:
+            pass
 
     try:
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
-
-        cur.execute("""
-            SELECT id, categoria, nome, descricao, preco, visivel, arquivado, foto_url, atualizado_em 
-            FROM cardapio 
-            WHERE slug = %s AND arquivado = FALSE
-            ORDER BY categoria, nome;
-        """, (slug,))
+        
+        if nome:
+            cur.execute("""
+                SELECT id, categoria, nome, descricao, preco, visivel, arquivado, foto_url, atualizado_em
+                FROM cardapio
+                WHERE nome = %s AND arquivado = FALSE
+                ORDER BY categoria, nome;
+            """, (nome,))
+        else:
+            cur.execute("""
+                SELECT id, categoria, nome, descricao, preco, visivel, arquivado, foto_url, atualizado_em
+                FROM cardapio
+                WHERE arquivado = FALSE
+                ORDER BY categoria, nome;
+            """)
 
         produtos = cur.fetchall()
         cur.close()
@@ -94,22 +128,21 @@ def consultar_cardapio(dados):
 
         return {
             "status": "sucesso",
-            "slug": slug,
+            "nome": nome,
             "total_produtos": len(produtos),
             "produtos": produtos
         }
-
     except Exception as e:
         return {"status": "erro", "mensagem": f"Erro ao consultar cardápio: {str(e)}"}
 
 def listar_arquivados(dados):
     """
     Lista os produtos que estão na aba de Arquivados.
-    Payload: {"slug": "..."}
+    Payload: {"nome": "..."}
     """
-    slug = dados.get("slug")
-    if not slug:
-        return {"status": "erro", "mensagem": "O campo 'slug' é obrigatório."}
+    nome = dados.get("nome")
+    if not nome:
+        return {"status": "erro", "mensagem": "O campo 'nome' é obrigatório."}
 
     try:
         conn = get_db_connection()
@@ -118,9 +151,9 @@ def listar_arquivados(dados):
         cur.execute("""
             SELECT id, categoria, nome, descricao, preco, visivel, arquivado, foto_url, atualizado_em 
             FROM cardapio 
-            WHERE slug = %s AND arquivado = TRUE
+            WHERE nome = %s AND arquivado = TRUE
             ORDER BY categoria, nome;
-        """, (slug,))
+        """, (nome,))
 
         produtos = cur.fetchall()
         cur.close()
@@ -132,7 +165,7 @@ def listar_arquivados(dados):
 
         return {
             "status": "sucesso",
-            "slug": slug,
+            "nome": nome,
             "produtos_arquivados": produtos
         }
 

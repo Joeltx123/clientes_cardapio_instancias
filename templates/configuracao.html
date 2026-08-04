@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block conteudo %}
+<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 max-w-xl">
+    <h2 class="text-2xl font-bold text-gray-800 mb-2">Configurações do Estabelecimento</h2>
+    <p class="text-gray-500 text-sm mb-6">Gerencie o nome, o slug de identificação e a quantidade de mesas do seu sistema.</p>
+    
+    <!-- Alertas de Sucesso ou Erro -->
+    {% if mensagem %}
+    <div class="mb-5 p-4 rounded-xl text-sm font-medium {% if status == 'sucesso' %}bg-emerald-50 text-emerald-700 border border-emerald-200{% else %}bg-red-50 text-red-700 border border-red-200{% endif %}">
+        {{ mensagem }}
+    </div>
+    {% endif %}
+
+    <!-- Formulário de Configuração -->
+    <form action="/configuracao" method="POST" class="space-y-4">
+        <!-- Slug oculto -->
+        <input type="hidden" name="slug" value="{{ dados.slug if dados else 'estabelecimento' }}">
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Nome do Estabelecimento</label>
+            <input type="text" name="nome_estabelecimento" value="{{ dados.nome if dados else '' }}" placeholder="Ex: Hamburgueria do João" class="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-emerald-500 focus:outline-none" required>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Quantidade de Mesas</label>
+            <input type="number" name="quantidade_mesas" value="{{ dados.quantidade_mesas if dados else '' }}" placeholder="Ex: 10" class="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-emerald-500 focus:outline-none" required>
+        </div>
+
+        <div class="pt-4 mt-2 border-t border-gray-100">
+            <label class="block text-sm font-medium text-red-600 mb-1">Senha do Administrador *</label>
+            <input type="password" name="senha_admin" placeholder="Digite a senha para autorizar" class="w-full border border-red-200 rounded-xl p-3 focus:ring-2 focus:ring-red-400 focus:outline-none" required>
+            <p class="text-xs text-gray-400 mt-1">Obrigatório para salvar alterações.</p>
+        </div>
+
+        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-3 rounded-xl transition shadow-sm mt-2">
+            Salvar Alterações
+        </button>
+    </form>
+</div>
+{% endblock %}

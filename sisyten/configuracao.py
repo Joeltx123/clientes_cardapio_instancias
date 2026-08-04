@@ -1,135 +1,62 @@
-import json
-import re
 import psycopg2
 from psycopg2.extras import RealDictCursor
-
-DB_CONFIG = {
-    "dbname": "cardapio_pro",
-    "user": "postgres",
-    "password": "",
-    "host": "localhost",
-    "port": "5432"
-}
-
-ADMIN_SENHA_CORRETA = "Soulivre01"
-
-def get_db_connection():
-    return psycopg2.connect(**DB_CONFIG)
-
-def gerar_slug(texto):
-    """Gera um slug amigável a partir de uma string."""
-    if not texto:
-        return ""
-    texto = texto.lower()
-    import unicodedata
-    nfkd = unicodedata.normalize('NFKD', texto)
-    texto_sem_acento = "".join([c for c in nfkd if not unicodedata.combining(c)])
-    slug = re.sub(r'[^a-z0-9]+', '-', texto_sem_acento)
-    return slug.strip('-')
+import json
 
 def consultar_configuracao():
-    """Consulta as configurações atuais via JSON."""
     try:
-        conn = get_db_connection()
+        conn = psycopg2.connect(dbname="cardapio_pro", user="postgres", password="", host="localhost", port="5432")
         cur = conn.cursor(cursor_factory=RealDictCursor)
-        cur.execute("SELECT id, nome_estabelecimento, slug, nome_dono, quantidade_mesas, atualizado_em FROM administracao ORDER BY id DESC LIMIT 1;")
-        config = cur.fetchone()
+        cur.execute("SELECT id, nome, mesas FROM administracao ORDER BY id DESC LIMIT 1;")
+        res = cur.fetchone()
         cur.close()
         conn.close()
-
-        if config:
-            config["atualizado_em"] = str(config["atualizado_em"])
-            return {"status": "sucesso", "dados": config}
+        
+        if res:
+            return {"status": "sucesso", "dados": dict(res)}
         else:
-            return {"status": "sucesso", "dados": None, "mensagem": "Nenhuma configuração cadastrada ainda."}
-
+            return {
+                "status": "sucesso",
+                "dados": {"nome": "Meu Estabelecimento", "mesas": 10}
+            }
     except Exception as e:
-        return {"status": "erro", "mensagem": f"Erro ao consultar o banco de dados: {str(e)}"}
+        return {"status": "erro", "mensagem": f"Erro ao consultar: {str(e)}"}
 
 def salvar_ou_atualizar_configuracao(dados):
-    """Valida a senha do administrador e processa os dados para salvar/atualizar."""
-    senha_informada = dados.get("senha_admin")
-
-    if senha_informada != ADMIN_SENHA_CORRETA:
-        return {
-            "status": "erro",
-            "mensagem": "Acesso negado: Senha do administrador incorreta ou não informada."
-        }
-
-    nome_estabelecimento = dados.get("nome_estabelecimento")
-    nome_dono = dados.get("nome_dono")
-    quantidade_mesas = dados.get("quantidade_mesas")
-    
-    slug_informado = dados.get("slug")
-    if slug_informado:
-        slug = gerar_slug(slug_informado)
-    elif nome_estabelecimento:
-        slug = gerar_slug(nome_estabelecimento)
-    else:
-        slug = None
-
-    if quantidade_mesas is not None:
-        try:
-            quantidade_mesas = int(quantidade_mesas)
-            if quantidade_mesas < 0:
-                raise ValueError()
-        except ValueError:
-            return {
-                "status": "erro",
-                "mensagem": "A quantidade de mesas deve ser um número inteiro válido e não negativo."
-            }
-
     try:
-        conn = get_db_connection()
+        nome = dados.get("nome", "Meu Estabelecimento")
+        mesas = int(dados.get("mesas", 10) or 10)
+
+        conn = psycopg2.connect(dbname="cardapio_pro", user="postgres", password="", host="localhost", port="5432")
         cur = conn.cursor(cursor_factory=RealDictCursor)
-
+        
         cur.execute("SELECT id FROM administracao ORDER BY id DESC LIMIT 1;")
-        registro = cur.fetchone()
-
-        if registro:
-            id_registro = registro["id"]
-            cur.execute("""
-                UPDATE administracao
-                SET nome_estabelecimento = COALESCE(%s, nome_estabelecimento),
-                    slug = COALESCE(%s, slug),
-                    nome_dono = COALESCE(%s, nome_dono),
-                    quantidade_mesas = COALESCE(%s, quantidade_mesas),
-                    atualizado_em = CURRENT_TIMESTAMP
-                WHERE id = %s;
-            """, (nome_estabelecimento, slug, nome_dono, quantidade_mesas, id_registro))
-            conn.commit()
-            mensagem = "Configurações atualizadas com sucesso."
+        res = cur.fetchone()
+        
+        if res:
+            adm_id = res["id"]
+            cur.execute("UPDATE administracao SET nome = %s, mesas = %s WHERE id = %s;", (nome, mesas, adm_id))
         else:
-            cur.execute("""
-                INSERT INTO administracao (nome_estabelecimento, slug, nome_dono, quantidade_mesas)
-                VALUES (%s, %s, %s, %s);
-            """, (nome_estabelecimento, slug, nome_dono, quantidade_mesas or 0))
-            conn.commit()
-            mensagem = "Configurações cadastradas com sucesso."
-
+            cur.execute("INSERT INTO administracao (nome, mesas) VALUES (%s, %s);", (nome, mesas))
+        
+        conn.commit()
         cur.close()
         conn.close()
-
-        return {"status": "sucesso", "mensagem": mensagem, "slug": slug}
-
+        
+        return {"status": "sucesso", "mensagem": "Configurações atualizadas com sucesso."}
     except Exception as e:
-        return {"status": "erro", "mensagem": f"Erro ao salvar no banco de dados: {str(e)}"}
+        return {"status": "erro", "mensagem": f"Erro ao salvar: {str(e)}"}
 
-def processar_requisicao(json_requisicao):
-    """Ponto de entrada que recebe e devolve estritamente JSON."""
+def processar_requisicao(requisicao_json):
     try:
-        req = json.loads(json_requisicao) if isinstance(json_requisicao, str) else json_requisicao
+        req = json.loads(requisicao_json)
         acao = req.get("acao")
-
+        dados = req.get("dados", {})
+        
         if acao == "consultar":
-            resposta = consultar_configuracao()
-        elif acao in ["cadastrar", "alterar", "salvar"]:
-            dados = req.get("dados", {})
-            resposta = salvar_ou_atualizar_configuracao(dados)
+            return json.dumps(consultar_configuracao())
+        elif acao == "salvar":
+            return json.dumps(salvar_ou_atualizar_configuracao(dados))
         else:
-            resposta = {"status": "erro", "mensagem": f"Ação '{acao}' não reconhecida."}
-
-        return json.dumps(resposta, ensure_ascii=False)
-
+            return json.dumps({"status": "erro", "mensagem": "Ação inválida."})
     except Exception as e:
-        return json.dumps({"status": "erro", "mensagem": f"Erro no processamento JSON: {str(e)}"}, ensure_ascii=False)
+        return json.dumps({"status": "erro", "mensagem": f"Erro interno: {str(e)}"})
