@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cardápio Digital - Mesa {{ mesa }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-gray-50 min-h-screen pb-24">
+    <!-- Tela de Bloqueio (Invisível por padrão, ativada ao Sair) -->
+    <div id="tela-bloqueio" class="fixed inset-0 bg-slate-900/90 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-8 max-w-md w-full text-center space-y-4 shadow-2xl">
+            <div class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto">
+                <i data-lucide="lock" class="w-8 h-8"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-800">Sessão Encerrada</h2>
+            <p class="text-gray-500 text-sm">Você saiu do cardápio da Mesa {{ mesa }}. Para realizar um novo pedido, por favor escaneie novamente o QR Code na mesa.</p>
+            <div class="pt-2">
+                <span class="inline-block bg-gray-100 text-gray-600 text-xs px-4 py-2 rounded-xl font-medium">Mesa #{{ mesa }} Bloqueada</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cabeçalho -->
+    <header class="bg-white border-b border-gray-100 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
+            <div>
+                <h1 class="text-xl font-bold text-gray-800">{{ nome_estabelecimento }}</h1>
+                <p class="text-xs text-emerald-600 font-semibold flex items-center gap-1">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span> Mesa {{ mesa }}
+                </p>
+            </div>
+            <div class="bg-slate-100 text-slate-800 text-xs font-bold px-3 py-1.5 rounded-xl">
+                Mesa {{ mesa }}
+            </div>
+        </div>
+    </header>
+
+    <!-- Conteúdo / Categorias e Produtos -->
+    <main class="max-w-3xl mx-auto p-4 space-y-6">
+        {% if categorias %}
+            {% for categoria, produtos in categorias.items() %}
+            <div class="space-y-3">
+                <h2 class="text-lg font-bold text-gray-800 border-l-4 border-slate-900 pl-3">{{ categoria }}</h2>
+                <div class="grid grid-cols-1 gap-3">
+                    {% for p in produtos %}
+                    <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between gap-4" data-id="{{ p.id }}" data-nome="{{ p.nome }}" data-preco="{{ p.preco }}">
+                        <div class="flex-1">
+                            <h3 class="font-bold text-gray-800 text-sm">{{ p.nome }}</h3>
+                            <p class="text-xs text-gray-500 mt-0.5">{{ p.descricao | default('Produto fresquinho e preparado na hora.') }}</p>
+                            <span class="text-emerald-600 font-bold text-sm mt-1 inline-block">R$ {{ "%.2f" | format(p.preco | float) }}</span>
+                        </div>
+                        <div class="flex items-center gap-3 bg-gray-50 p-1.5 rounded-xl border border-gray-100">
+                            <button onclick="mudarQtd('{{ p.id }}', -1)" class="w-8 h-8 bg-white rounded-lg shadow-sm flex items-center justify-center text-gray-600 hover:bg-gray-100 font-bold">-</button>
+                            <span id="qtd-{{ p.id }}" class="w-6 text-center font-bold text-sm text-gray-800">0</span>
+                            <button onclick="mudarQtd('{{ p.id }}', 1)" class="w-8 h-8 bg-white rounded-lg shadow-sm flex items-center justify-center text-gray-600 hover:bg-gray-100 font-bold">+</button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="bg-white p-8 rounded-2xl text-center text-gray-400 border border-gray-100">
+                <i data-lucide="utensils" class="w-12 h-12 mx-auto text-gray-300 mb-2"></i>
+                <p class="text-sm font-medium">Nenhum produto cadastrado no cardápio no momento.</p>
+            </div>
+        {% endif %}
+    </main>
+
+    <!-- Barra Inferior do Carrinho / Envio -->
+    <div id="barra-carrinho" class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-lg hidden z-20">
+        <div class="max-w-3xl mx-auto flex items-center justify-between gap-4">
+            <div>
+                <span class="text-xs text-gray-500 block">Total de Itens</span>
+                <span id="total-itens" class="font-bold text-gray-800 text-base">0 itens</span>
+            </div>
+            <button onclick="enviarPedido()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-3 rounded-xl text-sm shadow-sm transition flex items-center gap-2">
+                <i data-lucide="send" class="w-4 h-4"></i> Enviar Pedido
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal de Pós-Envio (Pedir de Novo ou Sair) -->
+    <div id="modal-pos-envio" class="fixed inset-0 bg-slate-900/80 z-40 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-6 max-w-sm w-full text-center space-y-4 shadow-xl">
+            <div class="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
+                <i data-lucide="check-circle" class="w-7 h-7"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-800">Pedido Enviado!</h3>
+            <p class="text-gray-500 text-xs">O seu pedido foi enviado com sucesso para a cozinha/balcão.</p>
+            
+            <div class="space-y-2 pt-2">
+                <button onclick="fecharModalPedirDeNovo()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl text-xs transition">
+                    Pedir de Novo
+                </button>
+                <button onclick="sairEBloquear()" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 rounded-xl text-xs transition">
+                    Sair (Bloquear Tela)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+        const carrinho = {};
+        const mesa = {{ mesa }};
+
+        function mudarQtd(id, delta) {
+            if (!carrinho[id]) {
+                const el = document.querySelector(`[data-id="${id}"]`);
+                carrinho[id] = {
+                    id: id,
+                    nome: el.dataset.nome,
+                    preco: parseFloat(el.dataset.preco),
+                    quantidade: 0
+                };
+            }
+            carrinho[id].quantidade += delta;
+            if (carrinho[id].quantidade < 0) carrinho[id].quantidade = 0;
+            if (carrinho[id].quantidade === 0) delete carrinho[id];
+
+            document.getElementById(`qtd-${id}`).innerText = carrinho[id] ? carrinho[id].quantidade : 0;
+            atualizarBarraCarrinho();
+        }
+
+        function atualizarBarraCarrinho() {
+            let totalQtd = Object.values(carrinho).reduce((acc, item) => acc + item.quantidade, 0);
+            const barra = document.getElementById('barra-carrinho');
+            document.getElementById('total-itens').innerText = `${totalQtd} item(ns) selecionado(s)`;
+            
+            if (totalQtd > 0) {
+                barra.classList.remove('hidden');
+            } else {
+                barra.classList.add('hidden');
+            }
+        }
+
+        async function enviarPedido() {
+            const itensArray = Object.values(carrinho);
+            if (itensArray.length === 0) return;
+
+            try {
+                const response = await fetch('/mesa/cardapio/enviar_pedido', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mesa: mesa, itens: itensArray })
+                });
+                const resultado = await response.json();
+                if (resultado.status === 'sucesso') {
+                    document.getElementById('modal-pos-envio').classList.remove('hidden');
+                } else {
+                    alert('Erro ao enviar pedido: ' + resultado.mensagem);
+                }
+            } catch (err) {
+                alert('Erro de conexão ao enviar o pedido.');
+            }
+        }
+
+        function fecharModalPedirDeNovo() {
+            // Limpa o carrinho e esconde o modal
+            for (let id in carrinho) {
+                carrinho[id].quantidade = 0;
+                document.getElementById(`qtd-${id}`).innerText = '0';
+            }
+            Object.keys(carrinho).forEach(k => delete carrinho[k]);
+            atualizarBarraCarrinho();
+            document.getElementById('modal-pos-envio').classList.add('hidden');
+        }
+
+        function sairEBloquear() {
+            document.getElementById('modal-pos-envio').classList.add('hidden');
+            document.getElementById('tela-bloqueio').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>

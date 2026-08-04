@@ -1,0 +1,13 @@
+[
+    {
+        "id": 1,
+        "nome": "Batata frita ",
+        "preco": 26,
+        "categoria": "Porções ",
+        "foto_url": "",
+        "descricao": "",
+        "visivel": true,
+        "arquivado": false,
+        "slug": "estabelecimento"
+    }
+]
