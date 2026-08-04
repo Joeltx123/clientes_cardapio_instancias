@@ -1,50 +1,64 @@
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+import json
 
-app = FastAPI(title="Cardápio Pro - JSON Centralizado")
+from sisyten import configuracao, qr_code, pedidos, cardapio, delivery, pagamento, analise, backup
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app = FastAPI(title="Cardápio Pro - Sisyten", version="1.0")
+
 templates = Jinja2Templates(directory="templates")
 
 @app.get("/", response_class=HTMLResponse)
-def raiz(request: Request):
-    # Assinatura corrigida para as versões recentes do Starlette/FastAPI
+async def index(request: Request):
     return templates.TemplateResponse(request, "base.html", {})
 
 @app.get("/api/configuracao")
-def api_configuracao():
-    return {"status": "sucesso", "modulo": "configuracao", "dados": {"empresa": "Cardápio Pro", "taxa_padrao": 5.00}}
+async def api_configuracao_get():
+    res = configuracao.processar_requisicao(json.dumps({"acao": "consultar", "dados": {"slug": "estabelecimento"}}))
+    return json.loads(res)
+
+@app.post("/api/configuracao")
+async def api_configuracao_post(request: Request):
+    body = await request.json()
+    res = configuracao.processar_requisicao(json.dumps({"acao": "salvar", "dados": body}))
+    return json.loads(res)
 
 @app.get("/api/cardapio")
-def api_cardapio():
-    return {"status": "sucesso", "modulo": "cardapio", "itens": [{"id": 1, "nome": "Pizza Margherita", "preco": 45.00}]}
+async def api_cardapio():
+    res = cardapio.processar_requisicao(json.dumps({"acao": "listar", "dados": {"slug": "estabelecimento"}}))
+    return json.loads(res)
 
 @app.get("/api/pedidos")
-def api_pedidos():
-    return {"status": "sucesso", "modulo": "pedidos", "pedidos_ativos": []}
+async def api_pedidos():
+    res = pedidos.processar_requisicao(json.dumps({"acao": "listar", "dados": {"slug": "estabelecimento"}}))
+    return json.loads(res)
 
 @app.get("/api/delivery")
-def api_delivery():
-    return {"status": "sucesso", "modulo": "delivery", "entregadores_disponiveis": 3}
+async def api_delivery():
+    res = delivery.processar_requisicao(json.dumps({"acao": "listar", "dados": {"slug": "estabelecimento"}}))
+    return json.loads(res)
 
 @app.get("/api/pagamento")
-def api_pagamento():
-    return {"status": "sucesso", "modulo": "pagamento", "metodos": ["Pix", "Cartão", "Dinheiro"]}
+async def api_pagamento():
+    res = pagamento.processar_requisicao(json.dumps({"acao": "listar", "dados": {"slug": "estabelecimento"}}))
+    return json.loads(res)
 
 @app.get("/api/analise")
-def api_analise():
-    return {"status": "sucesso", "modulo": "analise", "faturamento_dia": 1250.00}
+async def api_analise():
+    res = analise.processar_requisicao(json.dumps({"acao": "gerar_analise", "dados": {"slug": "estabelecimento", "filtro_tipo": "geral"}}))
+    return json.loads(res)
 
 @app.get("/api/qrcode")
-def api_qrcode():
-    return {"status": "sucesso", "modulo": "qrcode", "mesas_geradas": 15}
+async def api_qrcode():
+    res = qr_code.processar_requisicao(json.dumps({"acao": "gerar", "dados": {"slug": "estabelecimento"}}))
+    return json.loads(res)
 
 @app.get("/api/backup")
-def api_backup():
-    return {"status": "sucesso", "modulo": "backup", "ultimo_backup": "2026-06-06 12:00"}
+async def api_backup():
+    res = backup.processar_requisicao(json.dumps({"acao": "gerar_backup", "dados": {"slug": "estabelecimento"}}))
+    return json.loads(res)
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app:app", host="0.0.0.0", port=5003, reload=True)
+    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
