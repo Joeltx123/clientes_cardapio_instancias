@@ -15,6 +15,29 @@
         .dark .text-gray-800, .dark .text-gray-700, .dark .text-gray-600 { color: #cbd5e1 !important; }
         .dark .bg-gray-50 { background-color: #0f172a !important; color: #cbd5e1 !important; }
         .dark table th, .dark table td { border-color: #334155 !important; }
+    
+        :root {
+            --cor-primaria: #f97316;
+        }
+        /* Aplica a cor dinâmica nos botões principais e elementos de destaque */
+        button[type="submit"], .bg-emerald-600, .bg-orange-500 {
+            background-color: var(--cor-primaria) !important;
+        }
+        .text-emerald-400 {
+            color: var(--cor-primaria) !important;
+        }
+
+    
+        /* Garante que as bolinhas do seletor mantenham suas cores fixas originais */
+        .flex.items-center.justify-between.gap-1 button[onclick*="mudarCor"] {
+            background-color: initial !important;
+        }
+        .flex.items-center.justify-between.gap-1 button[onclick*="orange"] { background-color: #f97316 !important; }
+        .flex.items-center.justify-between.gap-1 button[onclick*="red"] { background-color: #b91c1c !important; }
+        .flex.items-center.justify-between.gap-1 button[onclick*="emerald"] { background-color: #059669 !important; }
+        .flex.items-center.justify-between.gap-1 button[onclick*="amber"] { background-color: #d97706 !important; }
+        .flex.items-center.justify-between.gap-1 button[onclick*="slate"] { background-color: #334155 !important; }
+
     </style>
 
 </head>
