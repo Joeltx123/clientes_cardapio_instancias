@@ -295,3 +295,44 @@ def rota_qrcode(request: Request):
         m["qrcode_imagem_url"] = f"https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={q}"
 
     return templates.TemplateResponse(request, "qrcode.html", {"request": request, "dados": dados})
+
+@app.get("/pagamento", response_class=HTMLResponse)
+def rota_pagamento(request: Request):
+    return templates.TemplateResponse(request, "pagamento.html", {"request": request})
+
+@app.post("/api/pagamento")
+async def api_pagamento(request: Request):
+    try:
+        body = await request.json()
+        resposta_str = pagamento.processar_requisicao(body)
+        return JSONResponse(content=json.loads(resposta_str))
+    except Exception as e:
+        return JSONResponse(content={"status": "erro", "mensagem": str(e)}, status_code=500)
+
+
+
+@app.get("/analise", response_class=HTMLResponse)
+def rota_analise(request: Request, periodo: str = "todos"):
+    try:
+        res = analise.obter_dados(filtro_periodo=periodo)
+    except Exception as e:
+        print(f"Erro ao obter dados de analise: {e}")
+        res = {
+            "total_vendas": 0, "faturamento_total": 0.0, "ticket_medio": 0.0,
+            "pix": 0.0, "cartao": 0.0, "dinheiro": 0.0, "transacoes": []
+        }
+    return templates.TemplateResponse(request, "analise.html", {
+        "request": request, 
+        "analise": res,
+        "periodo_atual": periodo
+    })
+
+@app.get("/backup", response_class=HTMLResponse)
+def rota_backup(request: Request):
+    try:
+        from sisyten import backup
+        dados = backup.obter_dados() if hasattr(backup, "obter_dados") else {}
+    except Exception as e:
+        print(f"Erro ao carregar backup: {e}")
+        dados = {}
+    return templates.TemplateResponse(request, "backup.html", {"request": request, "dados": dados})
