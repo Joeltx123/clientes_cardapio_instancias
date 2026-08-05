@@ -6,6 +6,17 @@
     <title>Cardápio Pro - Sisyten</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        .dark body { background-color: #0f172a !important; color: #f8fafc !important; }
+        .dark header { background-color: #1e293b !important; border-color: #334155 !important; }
+        .dark header h1, .dark header span { color: #f8fafc !important; }
+        .dark .bg-white { background-color: #1e293b !important; color: #f8fafc !important; border-color: #334155 !important; }
+        .dark .text-gray-800, .dark .text-gray-700, .dark .text-gray-600 { color: #cbd5e1 !important; }
+        .dark .bg-gray-50 { background-color: #0f172a !important; color: #cbd5e1 !important; }
+        .dark table th, .dark table td { border-color: #334155 !important; }
+    </style>
+
 </head>
 <body class="bg-gray-100 font-sans">
     <div class="flex h-screen overflow-hidden">
@@ -51,9 +62,30 @@
                 <a href="/qrcode" onclick="toggleMenu()" class="w-full flex items-center gap-3 py-2.5 px-4 rounded-lg transition hover:bg-slate-800 font-medium text-gray-300 hover:text-white">
                     <i data-lucide="qr-code" class="w-5 h-5"></i> QR Code Mesas
                 </a>
+                
                 <a href="/backup" onclick="toggleMenu()" class="w-full flex items-center gap-3 py-2.5 px-4 rounded-lg transition hover:bg-slate-800 font-medium text-gray-300 hover:text-white">
                     <i data-lucide="database" class="w-5 h-5"></i> Backup
                 </a>
+
+                <!-- Seletor de Tema e Cores Profissionais -->
+                <div class="px-4 py-3 mt-3 border-t border-slate-800">
+                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Aparência & Tema</p>
+                    <div class="grid grid-cols-2 gap-2 mb-3">
+                        <button onclick="mudarModo('light')" class="flex items-center justify-center gap-1.5 py-1.5 px-2 bg-slate-800 hover:bg-slate-700 text-gray-200 text-xs rounded-lg transition">
+                            ☀️ Claro
+                        </button>
+                        <button onclick="mudarModo('dark')" class="flex items-center justify-center gap-1.5 py-1.5 px-2 bg-slate-800 hover:bg-slate-700 text-gray-200 text-xs rounded-lg transition">
+                            🌙 Escuro
+                        </button>
+                    </div>
+                    <div class="flex items-center justify-between gap-1">
+                        <button onclick="mudarCor('orange')" title="Laranja Restaurante" class="w-6 h-6 rounded-full bg-orange-500 hover:scale-110 transition border border-white/20"></button>
+                        <button onclick="mudarCor('red')" title="Vinho / Bordô" class="w-6 h-6 rounded-full bg-red-700 hover:scale-110 transition border border-white/20"></button>
+                        <button onclick="mudarCor('emerald')" title="Verde Natural" class="w-6 h-6 rounded-full bg-emerald-600 hover:scale-110 transition border border-white/20"></button>
+                        <button onclick="mudarCor('amber')" title="Dourado Luxo" class="w-6 h-6 rounded-full bg-amber-500 hover:scale-110 transition border border-white/20"></button>
+                        <button onclick="mudarCor('slate')" title="Moderno Neutro" class="w-6 h-6 rounded-full bg-slate-700 hover:scale-110 transition border border-white/20"></button>
+                    </div>
+                </div>
             </nav>
         </aside>
 
@@ -76,7 +108,8 @@
         </main>
     </div>
 
-    <!-- Script para abrir/fechar -->
+
+            <!-- Script para gerenciar temas e cores -->
     <script>
         function toggleMenu() {
             const sidebar = document.getElementById('sidebar');
@@ -84,7 +117,48 @@
             sidebar.classList.toggle('-translate-x-full');
             overlay.classList.toggle('hidden');
         }
-        lucide.createIcons();
+        
+        function mudarModo(modo) {
+            if (modo === 'dark') {
+                document.documentElement.classList.add('dark');
+                document.body.classList.add('bg-slate-900', 'text-gray-100');
+                localStorage.setItem('theme_mode', 'dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+                document.body.classList.remove('bg-slate-900', 'text-gray-100');
+                localStorage.setItem('theme_mode', 'light');
+            }
+        }
+
+        function mudarCor(cor) {
+            localStorage.setItem('theme_color', cor);
+            aplicarTemaSalvo();
+        }
+
+        function aplicarTemaSalvo() {
+            const savedMode = localStorage.getItem('theme_mode');
+            if (savedMode === 'dark') {
+                document.documentElement.classList.add('dark');
+                document.body.classList.add('bg-slate-900', 'text-gray-100');
+            }
+
+            const savedColor = localStorage.getItem('theme_color');
+            if (savedColor) {
+                // Aplica uma cor de destaque personalizada via variável CSS global
+                let corHex = '#f97316'; // Laranja padrão
+                if (savedColor === 'red') corHex = '#b91c1c'; // Vinho/Bordô
+                if (savedColor === 'emerald') corHex = '#059669'; // Verde
+                if (savedColor === 'amber') corHex = '#d97706'; // Dourado
+                if (savedColor === 'slate') corHex = '#334155'; // Neutro
+                
+                document.documentElement.style.setProperty('--cor-primaria', corHex);
+            }
+        }
+
+        aplicarTemaSalvo();
+
+        document.addEventListener("DOMContentLoaded", () => {
+            aplicarTemaSalvo();
+            lucide.createIcons();
+        });
     </script>
-</body>
-</html>
