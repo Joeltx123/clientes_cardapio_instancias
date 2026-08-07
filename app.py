@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sisyten.configuracao import rota_configuracao
 from sisyten.cardapio import rota_cardapio
@@ -13,12 +14,15 @@ from sisyten.digital import rota_digital
 
 app = FastAPI(title="Sistema Cardápio Instâncias")
 
+# Monta a pasta static para servir imagens e assets locais
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 # Configuração do Jinja2 para abranger a raiz e todos os diretórios dos módulos
 templates = Jinja2Templates(directory=[
-    "templates", 
-    "sisyten/configuracao", 
-    "sisyten/cardapio", 
-    "sisyten/pedido", 
+    "templates",
+    "sisyten/configuracao",
+    "sisyten/cardapio",
+    "sisyten/pedido",
     "sisyten/delivery",
     "sisyten/pagamento",
     "sisyten/analise",
