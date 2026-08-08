@@ -7,18 +7,16 @@ router = APIRouter()
 
 @router.get("/configuracao", response_class=HTMLResponse)
 def rota_configuracao_get(request: Request):
-    # Consulta os dados usando a função do configuracao.py
     resposta_json = configuracao.consultar_configuracao()
-    # Se a função retornar dict diretamente ou string json, tratamos com segurança:
     res = resposta_json if isinstance(resposta_json, dict) else json.loads(resposta_json)
-    
+
     dados = res.get("dados", {})
     status = res.get("status", "sucesso")
     mensagem = res.get("mensagem") if status == "erro" else None
 
     return request.app.state.templates.TemplateResponse(
-        request, 
-        "configuracao.html", 
+        request,
+        "configuracao.html",
         {"request": request, "dados": dados, "mensagem": mensagem, "status": status}
     )
 
@@ -29,11 +27,9 @@ def rota_configuracao_post(
     quantidade_mesas: int = Form(...),
     senha_admin: str = Form(...)
 ):
-    # Validação simples da senha de admin (ajuste conforme a sua regra de segurança do sistema)
-    if senha_admin != "123456": # Troque ou ajuste se necessário
+    if senha_admin != "Soulivre01":
         resposta = {"status": "erro", "mensagem": "Senha do Administrador incorreta!"}
     else:
-        # Prepara o payload para a função de salvamento do configuracao.py
         payload = {
             "acao": "salvar",
             "dados": {
@@ -41,7 +37,6 @@ def rota_configuracao_post(
                 "mesas": quantidade_mesas
             }
         }
-        # Processa via lógica do configuracao.py
         resultado_str = configuracao.processar_requisicao(json.dumps(payload))
         resposta = json.loads(resultado_str)
 
@@ -52,7 +47,7 @@ def rota_configuracao_post(
     }
 
     return request.app.state.templates.TemplateResponse(
-        request, 
-        "configuracao.html", 
+        request,
+        "configuracao.html",
         {"request": request, "dados": dados, "mensagem": resposta.get("mensagem"), "status": resposta.get("status")}
     )

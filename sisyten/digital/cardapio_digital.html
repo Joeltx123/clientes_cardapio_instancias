@@ -47,6 +47,11 @@
                     {% for p in produtos %}
                     <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between gap-4" data-id="{{ p.id }}" data-nome="{{ p.nome }}" data-preco="{{ p.preco }}">
                         <div class="flex-1">
+                        {% if p.foto_url %}
+                        <div class="w-16 h-16 bg-gray-50 rounded-xl overflow-hidden flex-shrink-0 border border-gray-100">
+                            <img src="{{ p.foto_url }}" alt="{{ p.nome }}" class="w-full h-full object-contain">
+                        </div>
+                        {% endif %}
                             <h3 class="font-bold text-gray-800 text-sm">{{ p.nome }}</h3>
                             <p class="text-xs text-gray-500 mt-0.5">{{ p.descricao | default('Produto fresquinho e preparado na hora.') }}</p>
                             <span class="text-emerald-600 font-bold text-sm mt-1 inline-block">R$ {{ "%.2f" | format(p.preco | float) }}</span>
@@ -96,7 +101,7 @@
                     Pedir de Novo
                 </button>
                 <button onclick="sairEBloquear()" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 rounded-xl text-xs transition">
-                    Sair (Bloquear Tela)
+                    Sair
                 </button>
             </div>
         </div>
@@ -107,71 +112,64 @@
         const carrinho = {};
         const mesa = {{ mesa }};
 
+        // Verifica se a mesa já estava bloqueada ao carregar
+        if (localStorage.getItem("mesa_bloqueada_" + mesa) === "true") {
+            document.getElementById("tela-bloqueio").classList.remove("hidden");
+        }
+
         function mudarQtd(id, delta) {
             if (!carrinho[id]) {
                 const el = document.querySelector(`[data-id="${id}"]`);
-                carrinho[id] = {
-                    id: id,
-                    nome: el.dataset.nome,
-                    preco: parseFloat(el.dataset.preco),
-                    quantidade: 0
-                };
+                carrinho[id] = { id: id, nome: el.dataset.nome, preco: parseFloat(el.dataset.preco), quantidade: 0 };
             }
             carrinho[id].quantidade += delta;
             if (carrinho[id].quantidade < 0) carrinho[id].quantidade = 0;
             if (carrinho[id].quantidade === 0) delete carrinho[id];
-
             document.getElementById(`qtd-${id}`).innerText = carrinho[id] ? carrinho[id].quantidade : 0;
             atualizarBarraCarrinho();
         }
 
         function atualizarBarraCarrinho() {
             let totalQtd = Object.values(carrinho).reduce((acc, item) => acc + item.quantidade, 0);
-            const barra = document.getElementById('barra-carrinho');
-            document.getElementById('total-itens').innerText = `${totalQtd} item(ns) selecionado(s)`;
-            
-            if (totalQtd > 0) {
-                barra.classList.remove('hidden');
-            } else {
-                barra.classList.add('hidden');
-            }
+            const barra = document.getElementById("barra-carrinho");
+            document.getElementById("total-itens").innerText = `${totalQtd} item(ns) selecionado(s)`;
+            barra.classList.toggle("hidden", totalQtd === 0);
         }
 
         async function enviarPedido() {
             const itensArray = Object.values(carrinho);
             if (itensArray.length === 0) return;
-
             try {
-                const response = await fetch('/mesa/cardapio/enviar_pedido', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                const response = await fetch("/mesa/cardapio/enviar_pedido", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ mesa: mesa, itens: itensArray })
                 });
                 const resultado = await response.json();
-                if (resultado.status === 'sucesso') {
-                    document.getElementById('modal-pos-envio').classList.remove('hidden');
+                if (resultado.status === "sucesso") {
+                    document.getElementById("modal-pos-envio").classList.remove("hidden");
                 } else {
-                    alert('Erro ao enviar pedido: ' + resultado.mensagem);
+                    alert("Erro ao enviar pedido: " + resultado.mensagem);
                 }
             } catch (err) {
-                alert('Erro de conexão ao enviar o pedido.');
+                alert("Erro de conexão ao enviar o pedido.");
             }
         }
 
         function fecharModalPedirDeNovo() {
-            // Limpa o carrinho e esconde o modal
             for (let id in carrinho) {
                 carrinho[id].quantidade = 0;
-                document.getElementById(`qtd-${id}`).innerText = '0';
+                document.getElementById(`qtd-${id}`).innerText = "0";
             }
             Object.keys(carrinho).forEach(k => delete carrinho[k]);
             atualizarBarraCarrinho();
-            document.getElementById('modal-pos-envio').classList.add('hidden');
+            document.getElementById("modal-pos-envio").classList.add("hidden");
         }
 
         function sairEBloquear() {
-            document.getElementById('modal-pos-envio').classList.add('hidden');
-            document.getElementById('tela-bloqueio').classList.remove('hidden');
+            localStorage.setItem("mesa_bloqueada_" + mesa, "true");
+            document.getElementById("modal-pos-envio").classList.add("hidden");
+            document.getElementById("tela-bloqueio").classList.remove("hidden");
         }
     </script>
 </body>
